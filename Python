@@ -1,20 +1,14 @@
-import pandas as pd
-import tkinter as tk
-import re
-from tkinter import filedialog
-
-duplicate_col = [
-    'Id', 'ShortName', 'Name', 'ImageId'
-]
-
-mandatory_col = [
-    'Id', 'ShortName', 'Name', 'PhoneNumber'
-]
-
 vn_col = [
     'Name', 'Address'
 ]
 
+date_col = [
+    'JoinDate','DateOfEstablishment'
+]
+date_errors_message ={
+    'JoinDate': "Ngày tham gia không hợp lệ ",
+    'DateOfEstablishment' : "Ngày thành lập không hợp lệ"
+}
 duplicate_errors_message = {
     'Id': "Mã định danh không được trùng!",
     'ShortName': "Tên viết tắt không được trùng!",
@@ -27,63 +21,38 @@ Non_Vietnamese_errors_message = {
     'Address': "Địa chỉ phải là tiếng Việt có dấu"
 }
 
-vietnamese_pattern = r'^[a-zA-Z_ÀÁÂÃÈÉÊẾÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêếìíòóôõùúăđĩũơƯĂẠẢẤẦẨẪẬẮẰẲẴẶẸẺẼỀỀỂưăạảấầẩẫậắằẳẵặẹẻẽềềểỄỆỈỊỌỎỐỒỔỖỘỚỜỞỠỢỤỦỨỪễệỉịọỏốồổỗộớờởỡợụủứừỬỮỰỲỴÝỶỸửữựỳỵỷỹ\ ]+$'
+vietnamese_pattern = r'[àảãáạăằẳẵắặâầẩẫấậèẻẽéẹêềểễếệìỉĩíịòỏõóọôồổỗốộơờởỡớợùủũúụưừửữứựỳỷỹýỵđÀẢÃÁẠĂẰẲẴẮẶÂẦẨẪẤẬÈẺẼÉẸÊỀỂỄẾỆÌỈĨÍỊÒỎÕÓỌÔỒỔỖỐỘƠỜỞỠỚỢÙỦŨÚỤƯỪỬỮỨỰỲỶỸÝỴĐ]'
 vietnamese_ruleset = re.compile(vietnamese_pattern)
-
+ 
 def validate_vietnamese(text):
     if text is None:
         return False
-    return bool(vietnamese_ruleset.match(text))
+        
+    return bool(vietnamese_ruleset.search(text))
 
 def validation(df):
     errors = []
+    #Check file trắng
     if df.empty:
         errors.append("File trống!")
         return errors
-
+    #check ô trống
     for column in mandatory_col:
         if df[column].isnull().any():
             for index, value in df[df[column].isnull()].iterrows():
                 errors.append(f"Lỗi ở dòng {index + 1}, {column}: Bạn điền thiếu thông tin!")
-
+    #check duplicate
     for column in duplicate_col:
         duplicate_values = df[df.duplicated(column, keep='first') & ~df[column].isnull()]
         if not duplicate_values.empty:
             for index, _ in duplicate_values.iterrows():
                 errors.append(f"Lỗi ở dòng {index + 1}, {column}: {duplicate_errors_message.get(column)}")
-
+    #Check tiếng việt
     for column in vn_col:
-        if column in df.columns:
-            for index, value in df.iterrows():
-                if pd.notna(value[column]) and not validate_vietnamese(value[column]):
-                    errors.append(f"Lỗi ở dòng {index + 1}, {column}: {Non_Vietnamese_errors_message.get(column)}")
-
-    errors.sort(key=lambda x: (int(x.split(',')[0].split(' ')[-1]), x.split(',')[1]))
-    return errors
-
-def read_excel(filepath):
-    try:
-        df = pd.read_excel(filepath)
-        return df
-    except Exception as e:
-        print(f"Failed to load DF: {str(e)}")
-        return None
-
-def main():
-    root = tk.Tk()
-    root.withdraw()  # Hide the main window
-    filepath = filedialog.askopenfilename(filetypes=[("Excel files", "*.xlsx;*.xls")])
-    if filepath:  # Proceed if a file was selected
-        df = read_excel(filepath)
-        if df is not None:
-            errors = validation(df)
-            if errors:
-                for error in errors:
-                    print(error)
-            else:
-                print("Hem có lỗi.")
-    else:
-        print("No file was selected.")
-
-if __name__ == "__main__":
-    main()
+        for index, value in df.iterrows():
+            if pd.notna(value[column]) and not validate_vietnamese(value[column]):
+                 errors.append(f"Lỗi ở dòng {index + 1}, {column}: {Non_Vietnamese_errors_message.get(column)}")
+    #Check format ngày giờ
+    for column in date_col:
+        for index, value in df.iterrows():
+            
