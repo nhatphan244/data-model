@@ -20,8 +20,8 @@ date_col = [
     'JoinDate','DateOfEstablishment'
 ]
 date_errors_message ={
-    'JoinDate': "Ngày tham gia không hợp lệ ",
-    'DateOfEstablishment' : "Ngày thành lập không hợp lệ"
+    'JoinDate': "Ngày tham gia không hợp lệ, ",
+    'DateOfEstablishment' : "Ngày thành lập không hợp lệ, "
 }
 duplicate_errors_message = {
     'Id': "Mã định danh không được trùng!",
@@ -44,7 +44,14 @@ def validate_vietnamese(text):
         
     return bool(vietnamese_ruleset.search(text))
 
-
+def validate_date(column_name, date_value):
+    current_date = datetime.now()
+    if column_name == 'JoinDate':
+        # Check if JoinDate is in the past
+        if date_value < current_date:
+            return False, f"{date_errors_message[column_name]} không được là ngày trong quá khứ."
+        return True, ""
+    return False, date_errors_message[column_name] + "định dạng phải là dd/mm/yyyy."
 
 def validation(df):
     errors = []
@@ -68,9 +75,19 @@ def validation(df):
         for index, value in df.iterrows():
             if pd.notna(value[column]) and not validate_vietnamese(value[column]):
                  errors.append(f"Lỗi ở dòng {index + 1}, {column}: {Non_Vietnamese_errors_message.get(column)}")
+                 
     #Check format ngày giờ
     for column in date_col:
-        for index, value in df.iterrows():
+        for index, row in df.iterrows():
+            date_value = row[column]
+        if not pd.isnull(date_value) and isinstance(date_value, pd.Timestamp):
+            valid, message = validate_date(column, date_value)
+            if not valid:
+                errors.append(f"Lỗi ở dòng {index + 1}, {column}: {message}")
+        elif pd.isnull(date_value):
+            errors.append(f"Lỗi ở dòng {index + 1}, {column}: Giá trị ngày không được để trống.")
+        else:
+            errors.append(f"Lỗi ở dòng {index + 1}, {column}: {date_errors_message[column]} định dạng phải là dd/mm/yyyy.")
 
 
     errors.sort(key=lambda x: (int(x.split(',')[0].split(' ')[-1]), x.split(',')[1])) #Sort lỗi theo dòng + cột
