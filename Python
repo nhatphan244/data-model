@@ -1,3 +1,17 @@
+import pandas as pd
+import tkinter as tk
+import re
+from datetime import datetime
+from tkinter import filedialog
+
+duplicate_col = [
+    'Id', 'ShortName', 'Name', 'ImageId'
+]
+
+mandatory_col = [
+    'Id', 'ShortName', 'Name', 'PhoneNumber'
+]
+
 vn_col = [
     'Name', 'Address'
 ]
@@ -30,6 +44,8 @@ def validate_vietnamese(text):
         
     return bool(vietnamese_ruleset.search(text))
 
+
+
 def validation(df):
     errors = []
     #Check file trắng
@@ -55,4 +71,34 @@ def validation(df):
     #Check format ngày giờ
     for column in date_col:
         for index, value in df.iterrows():
-            
+
+
+    errors.sort(key=lambda x: (int(x.split(',')[0].split(' ')[-1]), x.split(',')[1])) #Sort lỗi theo dòng + cột
+    return errors
+
+def read_excel(filepath):
+    try:
+        df = pd.read_excel(filepath)
+        return df
+    except Exception as e:
+        print(f"Không load được DF: {str(e)}")
+        return None
+
+def main():
+    root = tk.Tk()
+    root.withdraw() 
+    filepath = filedialog.askopenfilename(filetypes=[("Excel files", "*.xlsx;*.xls")])
+    if filepath: 
+        df = read_excel(filepath)
+        if df is not None:
+            errors = validation(df)
+            if errors:
+                for error in errors:
+                    print(error)
+            else:
+                print("Hem có lỗi.")
+    else:
+        print("Không có file được chọn")
+
+if __name__ == "__main__":
+    main()
