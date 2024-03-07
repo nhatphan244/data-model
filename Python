@@ -1,0 +1,96 @@
+import pandas as pd
+import tkinter as tk
+import re
+from tkinter import filedialog
+
+duplicate_col= [
+    'Id','ShortName','Name','ImageId'
+]
+
+mandatory_col = [
+    'Id' ,'ShortName','Name','PhoneNumber'
+]
+
+vn_col = [
+    'Name','Address'
+]
+
+duplicate_errors_message = {
+        'Id': "Mã định danh không được trùng!",
+        'ShortName': "Tên viết tắt không được trùng!",
+        'Name': "Tên nhà sản xuất không được trùng!",
+        'ImageId': "Mã định danh hình ảnh không được trùng!"
+    }
+
+Non_Vietnamese_errors_message = {
+    'Name': "Tên nhà sản xuất phải là tiếng Việt có dấu",
+    'Address': "Địa chỉ phải là tiếng Việt có dấu"
+}
+vietnamese_pattern = r'^[a-zA-Z_ÀÁÂÃÈÉÊẾÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêếìíòóôõùúăđĩũơƯĂẠẢẤẦẨẪẬẮẰẲẴẶẸẺẼỀỀỂưăạảấầẩẫậắằẳẵặẹẻẽềềểỄỆỈỊỌỎỐỒỔỖỘỚỜỞỠỢỤỦỨỪễệỉịọỏốồổỗộớờởỡợụủứừỬỮỰỲỴÝỶỸửữựỳỵỷỹ\ ]+$'
+vietnamese_ruleset = re.compile(vietnamese_pattern)
+
+    
+def validate_vietnamese(text):
+    if text is None:
+        return False
+    return bool(vietnamese_ruleset.match(text))
+
+def validatation(df):
+   #Check file trống
+   errors = []
+   if df.empty:
+        errors.append("File trống!")
+        return errors
+   #Check dòng trống
+   for column in mandatory_col:
+       if df[column].isnull().any():
+            for index, value in df[df[column].isnull()].iterrows():
+                errors.append(f"Lỗi ở dòng {index +1}, {column}: Bạn điền thiếu thông tin!")
+
+   #Check duplicate
+   for column in duplicate_col:
+        duplicate_values = df[df.duplicated(column, keep=False)]
+        if not duplicate_values.empty:
+            for index, value in duplicate_values.iterrows():
+                errors.append(f"Lỗi ở dòng {index + 1}, {column}: {duplicate_errors_message.get(column)}")
+
+   #Check Tiếng Việt có dấu ở Name và Address
+   for column in vn_col:
+        if column in df.columns:
+            for index, value in df.iterrows():
+                if pd.notna(value[column]) and not validate_vietnamese(value[column]):
+                    errors.append(f"Lỗi ở dòng {index + 1}, {column}: {Non_Vietnamese_errors_message.get(column)}")
+    
+   
+    # Sort errors
+                    
+   errors.sort(key=lambda x:(
+    int(x.split(',')[0].split(' ')[-1]),  # Tách dòng
+    x.split(',')[1]                       # Tách cột
+))                   
+
+
+   return errors
+
+def read_excel(filepath):
+   try:
+       df = pd.read_excel(filepath)
+       return df
+   except Exception as e:
+       print(f"Failed to load DF: {str(e)}")
+       return None
+
+def main():
+    filepath = r'C:\Users\nhat.pm\Downloads\Manufacturer.xlsx'
+    df = pd.read_excel(filepath)
+    if df is not None:
+        errors = validatation(df)
+        if errors:
+            for error in errors:
+                print(error)
+        else:
+            print("Hem có lỗi.")
+            
+
+if __name__=="__main__":
+    main()
