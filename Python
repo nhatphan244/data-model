@@ -78,3 +78,13 @@ def db_format():
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=8000)
    
+def print_db_contents():
+    print("Current DB Contents:")
+    for item in db:
+        job_id = item["id"]
+        data = item["data"]
+        created_date = data.created_date.strftime("%Y-%m-%d %H:%M:%S") if data.created_date else "N/A"
+        last_run_date = data.last_run_date.strftime("%Y-%m-%d %H:%M:%S") if data.last_run_date else "N/A"
+        num_of_retry = data.num_of_retry
+        status = data.status
+        print(f"ID: {job_id}, Created Date: {created_date}, Last Run Date: {last_run_date}, Num of Retry: {num_of_retry}, Status: {status}")
