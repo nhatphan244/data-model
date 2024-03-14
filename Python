@@ -4,10 +4,10 @@ from typing import Optional
 from datetime import datetime
 from tabulate import tabulate
 import xlsxwriter
+import logging
 import uuid
 import uvicorn
-
-
+logging.basicConfig(filename='webhook.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 app = FastAPI()
 
@@ -22,69 +22,68 @@ class Webhook(BaseModel):
     num_of_retry: int = 0
     status: str = "new"
 
-
 db = []
-workbook =xlsxwriter.Workbook('test.xlsx')
-worksheet = workbook.add_worksheet()
-
+headers =['ID','Created Date', 'Last Run Date','Num of Retry','Status']
 @app.post("/webhook")
 def webhook_crawler(payload: Payload):
-
     if not payload.SentDate or not payload.Csv:
         raise HTTPException(status_code=400, detail="Invalid data format")
-
+    
     id = str(uuid.uuid4())
-
- 
     data = Webhook(data=payload.dict())
     db.append({"id": id, "data": data})
-
-    return {"id": id, "message": "Hooking completed completed: data received successfully"}
+    return {"id": id, "message": "Hooking completed: data received successfully"}
 
 @app.get("/run_jobs")
 def run_jobs():
+    log_request()
     for item in db:
         id = item["id"]
         data = item["data"]
         if data.status == "new" or (data.status == "failed" and data.num_of_retry < 3):
             execute_job(id)
-            db_format()
+            log_job_execution(id)
+            log_job_info(data)
+            print_db_contents()
     return {"message": "Jobs executed successfully"}
-
 
 def execute_job(id: str):
     print(f"Executing job with ID: {id}")
     for item in db:
         if item["id"] == id:
             data = item["data"]
-            data.status = "completed"
-            data.last_run_date = datetime.now()
-            break
+            try:
+                print(f"Job {id} executed successfully")
+                data.status = "Completed"
+            except Exception as e:
+                print(f"Job {id} failed,retrying ,the total number of retries = {data.num_of_retry}")
+                if data.num_of_retry < 3:
+                    data.num_of_retry +=1
+                    data.last_run_date = datetime.now()
+                else:
+                    data.status =  "Failed"
+                    break
 
-def db_format():
-    start_row = 1 
-    if worksheet.dim_rowmax == 0:
-        for col, header in enumerate(headers):
-            worksheet.write(0, col, header)
+def log_request():
+    logging.info("Received GET request to /run_jobs")
 
-    for idx, item in enumerate(db, start=start_row):
-        job_id = item["id"]
-        data = item["data"]
-        row = [job_id, data.data["SentDate"], data.data["Csv"], data.created_date, data.last_run_date, data.num_of_retry, data.status]
-        for col_idx, cell_data in enumerate(row):
-            worksheet.write(idx, col_idx, cell_data)
-            
-            
-if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=8000)
-   
+def log_job_execution(id: str):
+    logging.info(f"Job with ID {id} executed")
+
+def log_job_info(data: Webhook):
+    logging.info(f"Job Info - Created Date: {data.created_date}, Last Run Date: {data.last_run_date}, Num of Retry: {data.num_of_retry}, Status: {data.status}")
+
 def print_db_contents():
     print("Current DB Contents:")
     for item in db:
         job_id = item["id"]
         data = item["data"]
-        created_date = data.created_date.strftime("%Y-%m-%d %H:%M:%S") if data.created_date else "N/A"
-        last_run_date = data.last_run_date.strftime("%Y-%m-%d %H:%M:%S") if data.last_run_date else "N/A"
+        created_date = data.created_date.strftime("%Y-%m-%d") if data.created_date else "N/A"
+        last_run_date = data.last_run_date.strftime("%H:%M:%S") if data.last_run_date else "N/A"
         num_of_retry = data.num_of_retry
         status = data.status
         print(f"ID: {job_id}, Created Date: {created_date}, Last Run Date: {last_run_date}, Num of Retry: {num_of_retry}, Status: {status}")
+
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="127.0.0.1", port=8000)
