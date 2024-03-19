@@ -1,89 +1,173 @@
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-from typing import Optional
+import pandas as pd
+import tkinter as tk
+import re
 from datetime import datetime
-from tabulate import tabulate
-import xlsxwriter
-import logging
-import uuid
-import uvicorn
-logging.basicConfig(filename='webhook.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+from tkinter import filedialog
+import sqlite3
+conn= sqlite3.connect('telecom_database.db')
+cursor = conn.cursor()
 
-app = FastAPI()
+duplicate_col = [
+    'ShortName', 'Name', 'ImageId','BusinessLicense','TaxCode','PhoneNumber'
+]
 
-class Payload(BaseModel):
-    SentDate: str
-    Csv: str  
+num_col =[
+    'BusinessLicense','TaxCode'
+]
+teleco_col =[
+    'PhoneNumber','FaxNumber'
+]
 
-class Webhook(BaseModel):
-    data: dict
-    created_date: datetime = datetime.now()
-    last_run_date: Optional[datetime] = None
-    num_of_retry: int = 0
-    status: str = "new"
+mandatory_col = [
+    'ShortName', 'Name', 'PhoneNumber'
+]
 
-db = []
-headers =['ID','Created Date', 'Last Run Date','Num of Retry','Status']
-@app.post("/webhook")
-def webhook_crawler(payload: Payload):
-    if not payload.SentDate or not payload.Csv:
-        raise HTTPException(status_code=400, detail="Invalid data format")
+vn_col = [
+    'Name', 'Address'
+]
+
+date_col = [
+    'JoinDate','DateOfEstablishment'
+]
+teleco_errors_message ={
+    'PhoneNumber'  : 'Đầu số điện thoại phải thuộc nhà mạng',
+    'FaxNumber'    : 'Đầu số của số Fax phải thuộc nhà mạng'
+
+}
+
+num_errors_message ={
+    'BusinessLicense': "Giấy phép kinh doanh không hợp lệ",
+    'TaxCode' : "Mã số thuế không hợp lệ"
+}
+date_errors_message ={
+    'JoinDate': "Ngày tham gia không hợp lệ, ",
+    'DateOfEstablishment' : "Ngày thành lập không hợp lệ "
+}
+duplicate_errors_message = {
+    'ShortName': "Tên viết tắt không được trùng!",
+    'Name': "Tên nhà sản xuất không được trùng!",
+    'ImageId': "Mã định danh hình ảnh không được trùng!",
+    'BusinessLicense': "Giấy phép kinh doanh không được trùng!",
+    'TaxCode' : "Mã số thuế không được trùng!",
+    'PhoneNumber': "Số điện thoại không được trùng!"
+}
+
+
+Non_Vietnamese_errors_message = {
+    'Name': "Tên nhà sản xuất phải là tiếng Việt có dấu",
+    'Address': "Địa chỉ phải là tiếng Việt có dấu"
+}
+
+vietnamese_pattern = r'[àảãáạăằẳẵắặâầẩẫấậèẻẽéẹêềểễếệìỉĩíịòỏõóọôồổỗốộơờởỡớợùủũúụưừửữứựỳỷỹýỵđÀẢÃÁẠĂẰẲẴẮẶÂẦẨẪẤẬÈẺẼÉẸÊỀỂỄẾỆÌỈĨÍỊÒỎÕÓỌÔỒỔỖỐỘƠỜỞỠỚỢÙỦŨÚỤƯỪỬỮỨỰỲỶỸÝỴĐ]'
+vietnamese_ruleset = re.compile(vietnamese_pattern)
+ 
+def validate_vietnamese(text):
+    return bool(vietnamese_ruleset.search(text))
+
+def validate_date(column_name, date_value):
+    current_date = datetime.now().date()
+    if pd.isna(date_value) or date_value == '':
+        return True, "" 
     
-    id = str(uuid.uuid4())
-    data = Webhook(data=payload.dict())
-    db.append({"id": id, "data": data})
-    return {"id": id, "message": "Hooking completed: data received successfully"}
+    if isinstance(date_value, datetime):
+        date_obj = date_value.date()
+    elif isinstance(date_value, str):
+        try:
+            date_obj = datetime.strptime(date_value, '%d/%m/%Y').date()
+        except ValueError:
+            return False, date_errors_message[column_name] + " định dạng phải là dd/mm/yyyy."
+    else:
+        return False, date_errors_message[column_name] + " định dạng phải là dd/mm/yyyy."
+    
+    if column_name == 'JoinDate':
+        if date_obj > current_date:
+            return True, ""  
+        elif date_obj == current_date:
+            return True, ""  
+        else:
+            return False, date_errors_message[column_name] + " không được là ngày trong quá khứ."
+    
+    return True, ""
 
-@app.get("/run_jobs")
-def run_jobs():
-    log_request()
-    for item in db:
-        id = item["id"]
-        data = item["data"]
-        if data.status == "new" or (data.status == "failed" and data.num_of_retry < 3):
-            execute_job(id)
-            log_job_execution(id)
-            log_job_info(data)
-            print_db_contents()
-    return {"message": "Jobs executed successfully"}
 
-def execute_job(id: str):
-    print(f"Executing job with ID: {id}")
-    for item in db:
-        if item["id"] == id:
-            data = item["data"]
-            try:
-                print(f"Job {id} executed successfully")
-                data.status = "Completed"
-            except Exception as e:
-                print(f"Job {id} failed,retrying ,the total number of retries = {data.num_of_retry}")
-                if data.num_of_retry < 3:
-                    data.num_of_retry +=1
-                    data.last_run_date = datetime.now()
-                else:
-                    data.status =  "Failed"
-                    break
+def validation(df):
+    errors = []
+    #Check file trắng
+    if df.empty:
+        errors.append("File trống!")
+        return errors
+    #check ô trống
+    for column in mandatory_col:
+        if df[column].isnull().any():
+            for index, value in df[df[column].isnull()].iterrows():
+                errors.append(f"Lỗi ở dòng {index+2}, {column}: Bạn điền thiếu thông tin!")
+    #check duplicate
+    for column in duplicate_col:
+       non_blank_rows = df[df[column].notna()]
+       duplicate_values = non_blank_rows[non_blank_rows.duplicated(column, keep='first')]
+       for index, value in duplicate_values.iterrows():
+            errors.append(f"Lỗi ở dòng {index+2}, {column}: {duplicate_errors_message.get(column)}")
 
-def log_request():
-    logging.info("Received GET request to /run_jobs")
+    #Check tiếng việt
+    for column in vn_col:
+        for index, value in df.iterrows():
+            cell_value = value[column]
+            if isinstance(cell_value, str) and not validate_vietnamese(cell_value):
+                errors.append(f"Lỗi ở dòng {index+2}, {column}: {Non_Vietnamese_errors_message.get(column)}")
+                 
+    #Check format ngày giờ
+    for column in date_col:
+        for index, row in df.iterrows():
+            date_value = row[column]
+            valid, message = validate_date(column, date_value)
+            if not valid:
+                errors.append(f"Lỗi ở dòng {index+2}, {column}: {message}")
 
-def log_job_execution(id: str):
-    logging.info(f"Job with ID {id} executed")
+    #Check số BusinessLicense, TaxCode
+    for index, row in df.iterrows():
+        for column in num_col:
+            if column in df.columns:
+                num_value = row[column]
+                if pd.notna(num_value):
+                    try:
+                        num_value = float(num_value)
+                    except ValueError:
+                        errors.append(f"Lỗi ở dòng {index + 1}, {column}: {num_errors_message.get(column)}")
 
-def log_job_info(data: Webhook):
-    logging.info(f"Job Info - Created Date: {data.created_date}, Last Run Date: {data.last_run_date}, Num of Retry: {data.num_of_retry}, Status: {data.status}")
 
-def print_db_contents():
-    print("Current DB Contents:")
-    for item in db:
-        job_id = item["id"]
-        data = item["data"]
-        created_date = data.created_date.strftime("%Y-%m-%d") if data.created_date else "N/A"
-        last_run_date = data.last_run_date.strftime("%H:%M:%S") if data.last_run_date else "N/A"
-        num_of_retry = data.num_of_retry
-        status = data.status
-        print(f"ID: {job_id}, Created Date: {created_date}, Last Run Date: {last_run_date}, Num of Retry: {num_of_retry}, Status: {status}")
+    #Check số Fax và PhoneNumber phải thuộc Teleco:
+    #for column in teleco_col:
+       # if column in df.columns:
+           
 
+
+    errors.sort(key=lambda x: (int(x.split(',')[0].split(' ')[-1]), x.split(',')[1])) #Sort lỗi theo dòng + cột
+    return errors
+
+def read_excel(filepath):
+    try:
+        df = pd.read_excel(filepath)
+        return df
+    except Exception as e:
+        print(f"Không load được DF: {str(e)}")
+        return None
+
+def main():
+    root = tk.Tk()
+    root.withdraw() 
+    filepath = filedialog.askopenfilename(filetypes=[("Excel files", "*.xlsx;*.xls")])
+    if filepath: 
+        df = read_excel(filepath)
+        if df is not None:
+            errors = validation(df)
+            if errors:
+                for error in errors:
+                    print(error)
+            else:
+                print("Hem có lỗi.")
+    else:
+        print("Không có file được chọn")
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    main()
+conn.close
