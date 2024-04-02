@@ -1,8 +1,20 @@
-def validate_date(column_name, date_value,join_date_value):
+from datetime import datetime
+import pandas as pd
+
+# Assuming date_errors_message is defined somewhere above
+date_errors_message = {
+    'JoinDate': "Error message for JoinDate",
+    'EndDate': "Error message for EndDate",
+}
+
+def validate_date(column_name, date_value, join_date_value):
     current_date = datetime.now().date()
+    
+    # Check if date_value is missing or empty
     if pd.isna(date_value) or date_value == '':
         return True, "" 
-    
+
+    # Convert date_value to a date object
     if isinstance(date_value, datetime):
         date_obj = date_value.date()
     elif isinstance(date_value, str):
@@ -12,13 +24,25 @@ def validate_date(column_name, date_value,join_date_value):
             return False, date_errors_message[column_name] + "(định dạng phải là dd/mm/yyyy)."
     else:
         return False, date_errors_message[column_name] + "(định dạng phải là dd/mm/yyyy)."
-    
+
+    # For JoinDate or EndDate, ensure they are not in the past
     if column_name == 'JoinDate' or column_name == 'EndDate':
-        if date_obj > current_date:
-            return True, ""  
-        elif date_obj == current_date:
+        if date_obj > current_date or date_obj == current_date:
+            if column_name == 'EndDate':
+                # Convert join_date_value to a date object, similar to date_value conversion
+                if isinstance(join_date_value, datetime):
+                    join_date_obj = join_date_value.date()
+                elif isinstance(join_date_value, str):
+                    try:
+                        join_date_obj = datetime.strptime(join_date_value, '%d/%m/%Y').date()
+                    except ValueError:
+                        # If join_date_value conversion fails, it's a critical error
+                        return False, "Lỗi khi xử lý JoinDate (định dạng phải là dd/mm/yyyy)."
+                
+                # Compare EndDate with JoinDate
+                if date_obj < join_date_obj:
+                    return False, date_errors_message[column_name] + "(không được sớm hơn ngày JoinDate)."
             return True, ""  
         else:
-            return False, date_errors_message[column_name] + "(không được là ngày trong quá khứ).
-
-For this code, now I wan t to add another feature, if the value of date in 'EndDate' is lesser than the value of date in 'JoinDate', return the error message
+            return False, date_errors_message[column_name] + "(không được là ngày trong quá khứ)."
+    return True, ""
