@@ -1,13 +1,15 @@
-if column in df.columns:
-    errors = []  # Make sure you have initialized 'errors' list before this code block.
-    for index, row in df.iterrows():
-        RID = str(row[column])
-        if pd.isna(RID) or RID == '':
-            continue
-        if len(RID) == 9:
-            pass  # No further checks needed as per your requirements.
-        elif len(RID) == 12:
-            if not RID.startswith('0') or not RID[1:].isdigit():
-                errors.append(f"Lỗi ở dòng {index + 2}, {column}: Số CCCD/CMND không hợp lệ")
-        else:
-            errors.append(f"Lỗi ở dòng {index + 2}, {column}: Số CCCD/CMND không hợp lệ")
+for column in 'RepresentativeId':
+        if column in df.columns:
+            for index, row in df.iterrows():
+                RID = str(row[column])
+                if pd.isna(RID) or RID == '':
+                    continue
+                if len(RID) == 9:
+                    pass 
+                elif len(RID) == 12:
+                    if not RID.startswith('0') or not RID[1:].isdigit():
+                        errors.append(f"Lỗi ở dòng {index + 2}, {column}: Số CCCD/CMND không hợp lệ")
+                else:
+                        errors.append(f"Lỗi ở dòng {index + 2}, {column}: Số CCCD/CMND không hợp lệ")
+
+For this code, it reads data from the excel column, as you may have already know, in excelm if I want to display 0 as a component of a number, I have to turn the number into a string, now let come up solution for this situation.
