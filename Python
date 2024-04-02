@@ -1,15 +1,24 @@
-for column in 'RepresentativeId':
-        if column in df.columns:
-            for index, row in df.iterrows():
-                RID = str(row[column])
-                if pd.isna(RID) or RID == '':
-                    continue
-                if len(RID) == 9:
-                    pass 
-                elif len(RID) == 12:
-                    if not RID.startswith('0') or not RID[1:].isdigit():
-                        errors.append(f"Lỗi ở dòng {index + 2}, {column}: Số CCCD/CMND không hợp lệ")
-                else:
-                        errors.append(f"Lỗi ở dòng {index + 2}, {column}: Số CCCD/CMND không hợp lệ")
+def validate_date(column_name, date_value,join_date_value):
+    current_date = datetime.now().date()
+    if pd.isna(date_value) or date_value == '':
+        return True, "" 
+    
+    if isinstance(date_value, datetime):
+        date_obj = date_value.date()
+    elif isinstance(date_value, str):
+        try:
+            date_obj = datetime.strptime(date_value, '%d/%m/%Y').date()
+        except ValueError:
+            return False, date_errors_message[column_name] + "(định dạng phải là dd/mm/yyyy)."
+    else:
+        return False, date_errors_message[column_name] + "(định dạng phải là dd/mm/yyyy)."
+    
+    if column_name == 'JoinDate' or column_name == 'EndDate':
+        if date_obj > current_date:
+            return True, ""  
+        elif date_obj == current_date:
+            return True, ""  
+        else:
+            return False, date_errors_message[column_name] + "(không được là ngày trong quá khứ).
 
-For this code, it reads data from the excel column, as you may have already know, in excelm if I want to display 0 as a component of a number, I have to turn the number into a string, now let come up solution for this situation.
+For this code, now I wan t to add another feature, if the value of date in 'EndDate' is lesser than the value of date in 'JoinDate', return the error message
