@@ -12,3 +12,6 @@ for column in 'RepresentativeId':
                         errors.append(f"Lỗi ở dòng {index + 2}, {column}: Số CCCD/CMND không hợp lệ")
                 else:
                         errors.append(f"Lỗi ở dòng {index + 2}, {column}: Số CCCD/CMND không hợp lệ")
+
+For this code, I need it to check for number, the number that in the cell must be 9 or 12 in length, if it is 9 in length, it can be any combination as long as the total length is 9, if it is 12, it has to start with 0, otherwise return the message error, fix it for me
+
