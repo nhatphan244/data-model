@@ -1,73 +1,37 @@
-phụdef validate_date(column_name, date_value):
-    current_date = datetime.now().date()
-    formatted_current_date = current_date.strftime('%d/%m/%Y')
-    if pd.isna(date_value) or date_value == '':
-        return True, ""
-    
-    if isinstance(date_value, str):
-        try:
-            date_obj = datetime.strptime(date_value, '%d/%m/%Y').date()
-        except ValueError:
-            return False, date_errors_message[column_name] + " (định dạng phải là dd/mm/yyyy)."
-    elif isinstance(date_value, datetime):
-        date_str = date_value.strftime('%d/%m/%Y')
-        try:
-            date_obj = datetime.strptime(date_str, '%d/%m/%Y').date()
-        except ValueError:
-            return False, date_errors_message[column_name] + " (định dạng phải là dd/mm/yyyy)."
-    else:
-        return False, date_errors_message[column_name] + " (định dạng phải là dd/mm/yyyy)."
-    
-    if column_name == 'JoinDate' or column_name == 'EndDate':
-        if date_obj > formatted_current_date:
-            return True, ""
-        elif date_obj == formatted_current_date:
-            return True, ""
-        else:
-            return False, date_errors_message[column_name] + " (không được là ngày trong quá khứ)."
-
-    return True, ""
-
-For this function, I want to convert all the data I got into dd/mm/yyyy, than compare it to currentdate ( also in dd/mm/yyyy format), if they are larger or equal to the currentdate time, return true, else print the error message
-otherwise, print out the error message as follow.
-
 from datetime import datetime
 import pandas as pd
 
-# Example date_errors_message dictionary
+# Example error messages dictionary
 date_errors_message = {
     'JoinDate': 'Ngày tham gia không hợp lệ',
     'EndDate': 'Ngày kết thúc không hợp lệ'
 }
 
 def validate_date(column_name, date_value):
-    # Current date without time part
+    # Get the current date
     current_date = datetime.now().date()
     
-    # Return true for empty or NaN values, assuming they're allowed
+    # If the date value is empty or NaN, assume it's valid
     if pd.isna(date_value) or date_value == '':
         return True, ""
 
-    # Initialize date_obj as None
-    date_obj = None
-
-    # Check if the input is a string and try to convert to date
+    # Try to parse the date string into a datetime object
     if isinstance(date_value, str):
         try:
             date_obj = datetime.strptime(date_value, '%d/%m/%Y').date()
         except ValueError:
             return False, date_errors_message[column_name] + " (định dạng phải là dd/mm/yyyy)."
-    # Check if the input is already a datetime object
     elif isinstance(date_value, datetime):
         date_obj = date_value.date()
     else:
         return False, date_errors_message[column_name] + " (định dạng phải là dd/mm/yyyy)."
 
-    # Comparing date objects directly
+    # Perform the comparison using date objects
     if column_name in ['JoinDate', 'EndDate']:
         if date_obj >= current_date:
             return True, ""
         else:
             return False, date_errors_message[column_name] + " (không được là ngày trong quá khứ)."
 
+    # If none of the above conditions are met, return True
     return True, ""
