@@ -1,50 +1,32 @@
-from datetime import datetime
-import pandas as pd
-
-# Assuming the existence of a dictionary for error messages
-date_errors_message = {
-    'JoinDate': "Error message for JoinDate",
-    'EndDate': "Error message for EndDate",
-}
-
-def validate_date(column_name, date_value, join_date_value):
+def validate_date(column_name, date_value):
     current_date = datetime.now().date()
-    
-    # Convert date_value to a date object
+    formatted_current_date = current_date.strftime('%d/%m/%Y')
     if pd.isna(date_value) or date_value == '':
         return True, ""
     
-    if isinstance(date_value, datetime):
-        date_obj = date_value.date()
-    elif isinstance(date_value, str):
+    if isinstance(date_value, str):
         try:
             date_obj = datetime.strptime(date_value, '%d/%m/%Y').date()
         except ValueError:
-            return False, date_errors_message[column_name] + "(định dạng phải là dd/mm/yyyy)."
+            return False, date_errors_message[column_name] + " (định dạng phải là dd/mm/yyyy)."
+    elif isinstance(date_value, datetime):
+        date_str = date_value.strftime('%d/%m/%Y')
+        try:
+            date_obj = datetime.strptime(date_str, '%d/%m/%Y').date()
+        except ValueError:
+            return False, date_errors_message[column_name] + " (định dạng phải là dd/mm/yyyy)."
     else:
-        return False, date_errors_message[column_name] + "(định dạng phải là dd/mm/yyyy)."
-
-    # Handle JoinDate specific validation
-    if column_name == 'JoinDate':
-        if date_obj <= current_date:  # Includes today and past
+        return False, date_errors_message[column_name] + " (định dạng phải là dd/mm/yyyy)."
+    
+    if column_name == 'JoinDate' or column_name == 'EndDate':
+        if date_obj > formatted_current_date:
+            return True, ""
+        elif date_obj == formatted_current_date:
             return True, ""
         else:
-            return False, date_errors_message[column_name] + "(không được là ngày trong quá khứ)."
-
-    # Additional handling for EndDate
-    elif column_name == 'EndDate':
-        # First, ensure EndDate is not in the past
-        if date_obj < current_date:
-            return False, date_errors_message[column_name] + "(không được là ngày trong quá khứ)."
-        # Then, compare EndDate against JoinDate if applicable
-        if isinstance(join_date_value, str):
-            try:
-                join_date_obj = datetime.strptime(join_date_value, '%d/%m/%Y').date()
-                if date_obj < join_date_obj:
-                    return False, date_errors_message[column_name] + "(không được sớm hơn ngày JoinDate)."
-            except ValueError:
-                # If join_date_value is invalid, it's a critical error
-                return False, "Lỗi khi xử lý JoinDate (định dạng phải là dd/mm/yyyy)."
-        return True, ""
+            return False, date_errors_message[column_name] + " (không được là ngày trong quá khứ)."
 
     return True, ""
+
+For this function, I want to convert all the data I got into dd/mm/yyyy, than compare it to currentdate ( also in dd/mm/yyyy format), if they are larger or equal to the currentdate time, return true, else print the error message
+otherwise, print out the error message as follow.
