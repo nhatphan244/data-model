@@ -1,36 +1,7 @@
-Exception has occurred: ProgrammingError
-(pyodbc.ProgrammingError) ('The SQL contains 0 parameter markers, but 1 parameters were supplied', 'HY000')
-[SQL: 
+query = """
         SELECT w.name, d.name, p.name
         FROM wards w
         JOIN districts d ON w.district_id = d.id
         JOIN provinces p ON d.province_id = p.id
-        WHERE w.id = :ward_id AND d.id = :district_id AND p.id = :province_id
-        ]
-[parameters: {'ward_id': 58189, 'district_id': 4124, 'province_id': 381}]
-(Background on this error at: https://sqlalche.me/e/14/f405)
-pyodbc.ProgrammingError: ('The SQL contains 0 parameter markers, but 1 parameters were supplied', 'HY000')
-
-The above exception was the direct cause of the following exception:
-
-  File "C:\Validation Tool\Project1_validation\Project1_validation.py", line 109, in database_crawler
-    result = engine.execute(query, ward_id=ward_id, district_id=district_id, province_id=province_id).fetchone()
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Validation Tool\Project1_validation\Project1_validation.py", line 171, in validation
-    database_results = database_crawler(df)
-                       ^^^^^^^^^^^^^^^^^^^^
-  File "C:\Validation Tool\Project1_validation\Project1_validation.py", line 197, in main
-    errors = validation(df)
-             ^^^^^^^^^^^^^^
-  File "C:\Validation Tool\Project1_validation\Project1_validation.py", line 239, in <module>
-    main()
-sqlalchemy.exc.ProgrammingError: (pyodbc.ProgrammingError) ('The SQL contains 0 parameter markers, but 1 parameters were supplied', 'HY000')
-[SQL: 
-        SELECT w.name, d.name, p.name
-        FROM wards w
-        JOIN districts d ON w.district_id = d.id
-        JOIN provinces p ON d.province_id = p.id
-        WHERE w.id = :ward_id AND d.id = :district_id AND p.id = :province_id
-        ]
-[parameters: {'ward_id': 58189, 'district_id': 4124, 'province_id': 381}]
-(Background on this error at: https://sqlalche.me/e/14/f405)
+        WHERE w.id = ? AND d.id = ? AND p.id = ?
+        """
