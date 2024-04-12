@@ -5,3 +5,18 @@ query = """
               district_id = ? AND district_name = ? AND 
               province_id = ? AND province_name = ?
         """
+
+# Convert the specified columns to string type
+columns_to_convert = ['Mã Phường', 'Phường', 'Mã Quận', 'Quận', 'Mã Tỉnh Thành', 'Tỉnh Thành']
+for col in columns_to_convert:
+    df[col] = df[col].astype(str)
+
+# Now, iterate over each row
+for index, row in df.iterrows():
+    ward_id = row['Mã Phường']
+    ward_name = row['Phường']
+    district_id = row['Mã Quận']
+    district_name = row['Quận']
+    province_id = row['Mã Tỉnh Thành']
+    province_name = row['Tỉnh Thành']
+    # Your subsequent logic here...
