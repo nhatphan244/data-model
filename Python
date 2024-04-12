@@ -188,4 +188,13 @@ if __name__ == "__main__":
 
 
 
+ server = 'localhost'
+    database = 'GovMaster'
+    username = 'sql_developer'
+    password = '12345'
+    driver = 'ODBC Driver 17 for SQL Server'
+
+    connection_string = f'mssql+pyodbc://{username}:{password}@{server}/{database}?driver={driver}'
+
+
 For this code, Now I want to develop a database_crawler function, it will first gather data from column Mã Phường,Phường, Mã Quận, Quận,Tỉnh Thành, Mã Tỉnh Thành in the input excel file, and then query down to the database and query the information it get from those column for each row, ( remember that Mã Phường is ward_id, Phường is ward_name,Quận is district_name, Mã Quận is district_id, Tỉnh Thành is province_name,Mã Tỉnh Thành is province_id  in the database), if the data match in the excel match the data that got queried, return true, else return false 
