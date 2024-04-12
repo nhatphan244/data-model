@@ -1,91 +1,36 @@
-from sqlalchemy import create_engine
-import pandas as pd
-
-def database_crawler(df):
-    # Your SQL Server connection details
-    server = 'localhost'
-    database = 'GovMaster'
-    username = 'sql_developer'
-    password = '12345'
-    driver = 'ODBC Driver 17 for SQL Server'
-    # Format the connection string
-    connection_string = f'mssql+pyodbc://{username}:{password}@{server}/{database}?driver={driver}'
-    
-    # Create an SQLAlchemy engine using the connection string
-    engine = create_engine(connection_string)
-    
-    verification_results = []
-
-    # Iterate over rows in the DataFrame
-    for index, row in df.iterrows():
-        ward_id = row['Mã Phường']
-        ward_name = row['Phường']
-        district_id = row['Mã Quận']
-        district_name = row['Quận']
-        province_id = row['Mã Tỉnh Thành']
-        province_name = row['Tỉnh Thành']
-        
-        # Prepare SQL query to fetch geographical information
-        query = """
+Exception has occurred: ProgrammingError
+(pyodbc.ProgrammingError) ('The SQL contains 0 parameter markers, but 1 parameters were supplied', 'HY000')
+[SQL: 
         SELECT w.name, d.name, p.name
         FROM wards w
         JOIN districts d ON w.district_id = d.id
         JOIN provinces p ON d.province_id = p.id
         WHERE w.id = :ward_id AND d.id = :district_id AND p.id = :province_id
-        """
-        
-        # Execute query using SQLAlchemy
-        result = engine.execute(query, ward_id=ward_id, district_id=district_id, province_id=province_id).fetchone()
-        
-        # Compare database result with Excel data
-        if result and result == (ward_name, district_name, province_name):
-            verification_results.append(True)
-        else:
-            verification_results.append(False)
-    
-    # Return the verification results
-    return verification_results
+        ]
+[parameters: {'ward_id': 58189, 'district_id': 4124, 'province_id': 381}]
+(Background on this error at: https://sqlalche.me/e/14/f405)
+pyodbc.ProgrammingError: ('The SQL contains 0 parameter markers, but 1 parameters were supplied', 'HY000')
 
-def validation(df):
-    errors = []
-    # Check if the DataFrame is empty
-    if df.empty:
-        errors.append("File trống!")
-        return errors
-    
-    # Check the template
-    if not check_template(df):
-        errors.append("Sai Template: Các cột không khớp!")
-        return errors
+The above exception was the direct cause of the following exception:
 
-    # Check for mandatory columns being empty
-    for column in mandatory_col:
-        if df[column].isnull().any():
-            for index, value in df[df[column].isnull()].iterrows():
-                errors.append(f"Lỗi ở dòng {index + 2}, {column}: Bạn điền thiếu thông tin!")
-
-    # Check for duplicates in specified columns
-    for column in duplicate_col:
-       non_blank_rows = df[df[column].notna()]
-       duplicate_values = non_blank_rows[non_blank_rows.duplicated(column, keep='first')]
-       for index, value in duplicate_values.iterrows():
-            errors.append(f"Lỗi ở dòng {index + 2}, {column}: {duplicate_errors_message.get(column)}")
-
-    # Validate phone numbers
-    for column in teleco_col:
-        if column in df.columns:
-            for index, row in df.iterrows():
-                phone_number = row[column]
-                valid, message = validate_phone_number(phone_number, column)
-                if not valid:
-                    errors.append(f"Lỗi ở dòng {index + 2}, {column}: {message}")
-
-    # Validate geographical data against the database
+  File "C:\Validation Tool\Project1_validation\Project1_validation.py", line 109, in database_crawler
+    result = engine.execute(query, ward_id=ward_id, district_id=district_id, province_id=province_id).fetchone()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Validation Tool\Project1_validation\Project1_validation.py", line 171, in validation
     database_results = database_crawler(df)
-    for index, is_valid in enumerate(database_results):
-        if not is_valid:
-            errors.append(f"Lỗi ở dòng {index + 2}: Dữ liệu địa lý không khớp với cơ sở dữ liệu.")
-
-    # Sort errors for readability
-    errors.sort(key=lambda x: (int(x.split(',')[0].split(' ')[-1]), x.split(',')[1])) 
-    return errors
+                       ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Validation Tool\Project1_validation\Project1_validation.py", line 197, in main
+    errors = validation(df)
+             ^^^^^^^^^^^^^^
+  File "C:\Validation Tool\Project1_validation\Project1_validation.py", line 239, in <module>
+    main()
+sqlalchemy.exc.ProgrammingError: (pyodbc.ProgrammingError) ('The SQL contains 0 parameter markers, but 1 parameters were supplied', 'HY000')
+[SQL: 
+        SELECT w.name, d.name, p.name
+        FROM wards w
+        JOIN districts d ON w.district_id = d.id
+        JOIN provinces p ON d.province_id = p.id
+        WHERE w.id = :ward_id AND d.id = :district_id AND p.id = :province_id
+        ]
+[parameters: {'ward_id': 58189, 'district_id': 4124, 'province_id': 381}]
+(Background on this error at: https://sqlalche.me/e/14/f405)
