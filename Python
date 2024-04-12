@@ -1,7 +1,7 @@
 query = """
-        SELECT w.name, d.name, p.name
-        FROM wards w
-        JOIN districts d ON w.district_id = d.id
-        JOIN provinces p ON d.province_id = p.id
-        WHERE w.id = ? AND d.id = ? AND p.id = ?
+        SELECT 1
+        FROM gov_master
+        WHERE ward_id = ? AND ward_name = ? AND 
+              district_id = ? AND district_name = ? AND 
+              province_id = ? AND province_name = ?
         """
