@@ -1,243 +1,80 @@
-import pandas as pd
-import tkinter as tk
-import re
-import sqlalchemy
-from datetime import datetime
-from tkinter import filedialog
-import phonenumbers 
-from phonenumbers import PhoneNumberMatcher, is_possible_number, is_valid_number, parse
-from openpyxl import load_workbook
+I have to 2 python files:
+govmaster_crawler.py
 from sqlalchemy import create_engine
-from sqlalchemy.exc import SQLAlchemyError
-import govmaster_crawler as gc
-from govmaster_crawler import db_connect, get_gov_master_list,migrate_dataframe
+import pandas as pd
+import re
 
 
-template_col =[
-    'Mã Vùng', 'Kênh Phân phối', 'Số điện thoại 1 của cửa hàng', 'Mã Tỉnh Thành', 'Vùng', 'Tỉnh Thành', 'Mã hình thức bán hàng', 'Mã Kênh', 'NPP', 'Mã CH của KH',
-    'Số nhà', 'Mã phân loại cửa hàng', 'Mã Miền', 'Mã vị trí CH', 'Hình thức bán hàng', 'Mã Phường', 'Miền', 'Loại Khách Hàng', 'Ngành Hàng', 'Mã cửa hàng',
-    'Longtitude', 'Đường', 'Kênh', 'Mã loại hình kinh doanh', 'Tên cửa hàng', 'Mã Quận', 'Mã Ngành Hàng', 'Ngày cấp CMND/ CCCD', 'Loại hình kinh doanh', 'Lattitude', 
-    'Số điện thoại 2 của cửa hàng', 'Mã khu vực', 'Mã Loại Khách Hàng', 'Khu vực', 'Vị trí CH', 'Phân loại cửa hàng', 'Phường', 'CMND/ CCCD của chủ cửa hàng', 
-    'Tên chủ cửa hàng', 'Quận', 'Nơi cấp CMND/ CCCD', 'Mã NPP', 'Mã kênh phân phối'
-]
+def db_connect():
+    server = 'localhost'
+    database = 'GovMaster'
+    username = 'sql_developer'
+    password = '12345'
+    driver = 'ODBC Driver 17 for SQL Server'
 
-geo_db_col =[
-    'Mã Phường','Phường','Mã Quận','Quận','Tỉnh Thành','Mã Tỉnh Thành'
-]
+    connection_string = f'mssql+pyodbc://{username}:{password}@{server}/{database}?driver={driver}'
 
+    engine = create_engine(connection_string)
+    return engine
 
-mandatory_col =[
-    'Mã cửa hàng','Mã CH của KH','Tên cửa hàng','Số nhà','Đường','Mã Quận','Quận','Mã Tỉnh Thành',
-    'Tỉnh Thành','Longtitude','Lattitude','Mã Miền','Miền','Mã Vùng','Vùng','Mã khu vực','Khu vực',
-    'Mã vị trí CH','Vị trí CH'
-]
-duplicate_col = [
-    'Mã cửa hàng','Mã CH của KH','Số điện thoại 1 của cửa hàng','Số điện thoại 2 của cửa hàng'
-]
-
-teleco_col =[
-    'Số điện thoại 1 của cửa hàng','Số điện thoại 2 của cửa hàng'
-]
-duplicate_errors_message = {
-    'Mã cửa hàng': "Mã cửa hàng không được trùng",
-    'Mã CH của KH': "Mã CH của KH không được trùng",
-    'Số điện thoại 1 của cửa hàng': "Số điện thoại 1 của cửa hàng không được trùng",
-    'Số điện thoại 2 của cửa hàng': "Số điện thoại 2 của cửa hàng không được trùng"
-}
-
-teleco_errors_message ={
-    'Số điện thoại 1 của cửa hàng' : "Đầu số điện thoại phải thuộc nhà mạng",
-    'Số điện thoại 2 của cửa hàng' : "Đầu số điện thoại phải thuộc nhà mạng"
-}
-phone_format_errors_message ={
-    'Số điện thoại 1 của cửa hàng'  : "Đầu số điện thoại sai định dạng",
-    'Số điện thoại 2 của cửa hàng'  : "Đầu số điện thoại sai định dạng"
-}
-
-def check_template(df):
-    df_columns = {col for col in df.columns if not col.lower().startswith('errors')}
-    template_columns = set(template_col)
-    if template_columns != df_columns:
-        missing_in_df = template_columns - df_columns
-        if missing_in_df:
-            missing_columns_str = ', '.join(f'"{col}"' for col in missing_in_df)
-            print(f"Lỗi: không tìm thấy cột {missing_columns_str} khi đọc file ")
-
-        mismatching_columns = df_columns - template_columns
-        if mismatching_columns:
-            mismatching_columns_str = ', '.join(f'"{col}"' for col in mismatching_columns)
-            print(f"Lỗi: cột {mismatching_columns_str} không trùng với định nghĩa template")
-        
-        return False
-    return True
-
-
-
-def database_crawler(df):
-    engine = gc.db_connect()
-    df_gov_master = gc.migrate_dataframe(engine)
-    for index, row in df.iterrows():
-        province = row['Tỉnh Thành']
-        district = row['Quận']
-        ward = row['Phường']
-
-        ward_result = gc.get_ward(ward, district, province, df_gov_master)
-        # Check tỉnh
-        province_result = df_gov_master[df_gov_master["province_name"] == province]
-        if province_result.empty:
-            return f"Lỗi ở dòng {index + 2}: Tỉnh thành '{province}' không tồn tại trong cơ sở dữ liệu."
-
-        # Check quận
-        district_result = df_gov_master[(df_gov_master["province_name"] == province) & 
-                                         (df_gov_master["district_name"] == district)]
-        if district_result.empty:
-            return f"Lỗi ở dòng {index + 2}: Phường '{ward}' không tồn tại ở quận '{district}' và tỉnh thành '{province}'."
-
-        # Check phường
-        ward_result = df_gov_master[(df_gov_master["province_name"] == province) & 
-                                     (df_gov_master["district_name"] == district) & 
-                                     (df_gov_master["ward_name"] == ward)]
-        if ward_result.empty:
-            return f"Lỗi ở dòng {index + 2}: Phường '{ward}' không tồn tại ở quận '{district}' và tỉnh thành '{province}'."
-
-    return None  # Pass
-
-    
-
-
-def validate_phone_number(phone_number, column_name, country='VN'):
-    phone_number_str = str(phone_number) if not pd.isna(phone_number) else ''
-    if phone_number_str == '':
-        return True, ""
-    
-    cleaned_phone_number = ''.join(filter(lambda x: x.isdigit() or x in "+-()", phone_number_str))
+def get_all(query, engine):
     try:
-        number = parse(cleaned_phone_number, country)
-        if not is_possible_number(number):
-            return False, phone_format_errors_message[column_name]
-        if not is_valid_number(number):
-            return False, teleco_errors_message[column_name]
-    except phonenumbers.NumberParseException:
-        return False, phone_format_errors_message[column_name]
-
-    return True, ""
-
-def validation(df):
-    errors = []
-    #Check file trắng
-    if df.empty:
-        errors.append("File trống!")
-        return errors
-    #Check sai template
-    if not check_template(df):
-        errors.append("Sai Template")
-        return errors
-
-    #Check ô trống
-    for column in mandatory_col:
-        if df[column].isnull().any():
-            for index, value in df[df[column].isnull()].iterrows():
-                errors.append(f"Lỗi ở dòng {index + 2}, {column}: Bạn điền thiếu thông tin!")
-    #check duplicate
-    for column in duplicate_col:
-       non_blank_rows = df[df[column].notna()]
-       duplicate_values = non_blank_rows[non_blank_rows.duplicated(column, keep='first')]
-       for index, value in duplicate_values.iterrows():
-            errors.append(f"Lỗi ở dòng {index + 2}, {column}: {duplicate_errors_message.get(column)}")
-
-    #Check phone        
-    for column in teleco_col:
-        if column in df.columns:
-            for index, row in df.iterrows():
-                phone_number = row[column]
-                valid, message = validate_phone_number(phone_number, column)
-                if not valid:
-                    errors.append(f"Lỗi ở dòng {index + 2}, {column}: {message}")
-    #Cross-check tỉnh-mã tỉnh/quận-mã quận/huyện-mã huyện với database
-    db_error = database_crawler(df)
-    if db_error:
-        errors.append(db_error)
-
-    errors.sort(key=lambda x: ( int(x.split(',')[0].split(' ')[-1]), x.split(',')[1])) #Sort lỗi theo dòng + cột
-    return errors
-
- #đọc excel   
-def read_excel(filepath):
-    try:
-        df = pd.read_excel(filepath)
-        return df
+        with engine.connect() as connection:
+            result = connection.execute(query).fetchall()
+            result_dicts = [dict(row) for row in result]
+            return result_dicts
     except Exception as e:
-        print(f"Không load được DF: {str(e)}")
-        return None
-#func main  
+        print(f"Error occurred: {e}")
+        return []
+
+def get_gov_master_list(engine):
+    query = """
+        SELECT g.province_id, g.province_name, g.district_id, 
+               g.district_name, g.ward_id, g.ward_name 
+        FROM gov_master g
+    """
+    result = get_all(query, engine)
+    return result
+
+def migrate_dataframe(engine):
+    gov_master_list = get_gov_master_list(engine)
+    df_gov_master = pd.DataFrame(gov_master_list)
+    return df_gov_master
+
+
+def get_ward(ward, district, province, df_gov_master):
+    result = df_gov_master[(df_gov_master["province_name"] == province) & 
+                            (df_gov_master["district_name"] == district) & 
+                            (df_gov_master["ward_name"] == ward)]
+   
+    if not result.empty:
+        return result.head(1)
+    return [] 
+
+
 def main():
-    root = tk.Tk()
-    root.withdraw() 
-    filepath = filedialog.askopenfilename(filetypes=[("Excel files", "*.xlsx;*.xls")])
+    try:
+        engine = db_connect()
+        print("Connection established")
+    except Exception as e:
+        print(f"Error connecting to the database: {e}")
+        return
+    
+    # Migrate data from GovMaster database to DataFrame
+    df_gov_master = migrate_dataframe(engine)
+    print("\nDataFrame of Gov Masters:")
+    print(df_gov_master)
 
-    if filepath: 
-        df = read_excel(filepath)
+    print("\nTesting get_ward:")
+    ward = "Xã Viên An Đông"
+    district = "Huyện Ngọc Hiển"
+    province = "Tỉnh Cà Mau"
+    ward_result = get_ward(ward, district, province, df_gov_master)
+    print("Result for ward:", ward_result)
 
-        if df is not None:
-            errors = validation(df)
+    # Print the DataFrame of Gov Masters
+    print("\nDataFrame of Gov Masters:")
 
-            if errors:
-                wb = load_workbook(filepath)
-                sheet = wb.active
-
-                if 'Errors' not in sheet[1]:
-                    sheet.cell(row=1, column=len(df.columns) + 1, value='Errors')
-
-                error_dict = {}  
-                for error in errors:
-                    # Handle error message indicating empty file
-                    if "File trống" in error:
-                        print("File trống!")
-                        return
-                    elif "Sai Template" in error:
-                        print("Sai Template: Các cột không khớp!")   
-                        return
-
-                    row_num = int(error.split(',')[0].split(' ')[-1]) 
-                    error_message = error.split(',')[1].strip()  
-
-                    if row_num not in error_dict:
-                        error_dict[row_num] = [f"+{error_message}"]
-                    else:
-                        error_dict[row_num].append(f"+{error_message}")
-
-                for row_num, error_messages in error_dict.items():
-                    error_str = '\n'.join(error_messages)
-                    sheet.cell(row=row_num, column=len(df.columns) + 1, value=error_str)
-
-                wb.save(filepath)
-                print("Lỗi đã được viết vào file excel.")
-            else:
-                print("Scan file hoàn tất, không có lỗi.")
-        else:
-            print("Không load được DF")
-    else:
-        print("Không có file được chọn")
-
-#chạy main
 if __name__ == "__main__":
     main()
-
-
-
-For this code, I encountered error:
-Exception has occurred: ValueError
-invalid literal for int() with base 10: 'liệu.'
-  File "C:\Validation Tool\Project1_validation\Project1_validation.py", line 161, in <lambda>
-    errors.sort(key=lambda x: ( int(x.split(',')[0].split(' ')[-1]), x.split(',')[1])) #Sort lỗi theo dòng + cột
-                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Validation Tool\Project1_validation\Project1_validation.py", line 161, in validation
-    errors.sort(key=lambda x: ( int(x.split(',')[0].split(' ')[-1]), x.split(',')[1])) #Sort lỗi theo dòng + cột
-    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Validation Tool\Project1_validation\Project1_validation.py", line 182, in main
-    errors = validation(df)
-             ^^^^^^^^^^^^^^
-  File "C:\Validation Tool\Project1_validation\Project1_validation.py", line 224, in <module>
-    main()
-ValueError: invalid literal for int() with base 10: 'liệu.'
-What happened, and how to fix it 
+and databawse 
