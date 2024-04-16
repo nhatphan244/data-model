@@ -1,98 +1,47 @@
-import pandas as pd
-import sqlalchemy
-from sqlalchemy import create_engine
-from sqlalchemy.types import NVARCHAR,INT
-import openpyxl
-import pyodbc
+from sqlalchemy import text
 
-excel_file = "C:\\Validation Tool\\Database\\GOV.xlsx" #Location of gov_master.xlsx
+# SQL statements to create the tables
+create_gov_master_table = """
+CREATE TABLE gov_master (
+    province_id INT,
+    province_name NVARCHAR(255),
+    province_name_unsigned NVARCHAR(255),
+    district_id INT,
+    district_name NVARCHAR(255),
+    district_name_unsigned NVARCHAR(255),
+    ward_id INT,
+    ward_name NVARCHAR(255),
+    ward_name_unsigned NVARCHAR(255)
+);
+"""
 
-server = 'localhost'
-database = 'GovMaster'
-username = 'sql_developer'
-password = '12345'
-driver = 'ODBC Driver 17 for SQL Server'
+create_province_table = """
+CREATE TABLE province (
+    id INT PRIMARY KEY,
+    province_name NVARCHAR(255),
+    province_name_unsigned NVARCHAR(255)
+);
+"""
 
-connection_string = f'mssql+pyodbc://{username}:{password}@{server}/{database}?driver={driver}'
+create_district_table = """
+CREATE TABLE district (
+    id INT PRIMARY KEY,
+    district_name NVARCHAR(255),
+    district_name_unsigned NVARCHAR(255)
+);
+"""
 
-engine = create_engine(connection_string)
+create_ward_table = """
+CREATE TABLE ward (
+    id INT PRIMARY KEY,
+    ward_name NVARCHAR(255),
+    ward_name_unsigned NVARCHAR(255)
+);
+"""
 
-df = pd.read_excel(excel_file)
-
-column_mapping_gov_master = {
-    "System Mã Tỉnh": "province_id",
-    "Thành Phố": "province_name",
-    "System Mã Quận Huyện": "district_id",
-    "Quận Huyện": "district_name",
-    "System Ward Code": "ward_id",
-    "Phường Xã": "ward_name"
-}
-
-column_mapping_province = {
-    "System Mã Tỉnh": "id",
-    "Thành Phố": "province_name"
-}
-column_mapping_district ={
-    "System Mã Quận Huyện": "id",
-    "Quận Huyện": "district_name",
-}
-column_mapping_ward ={
-    "System Ward Code": "id",
-    "Phường Xã": "ward_name"
-}
-
-gov_master_df = df.rename(columns=column_mapping_gov_master)
-gov_master_df.insert(gov_master_df.columns.get_loc("province_name") + 1, "province_name_unsigned", "")
-gov_master_df.insert(gov_master_df.columns.get_loc("district_name") + 1, "district_name_unsigned", "")
-gov_master_df.insert(gov_master_df.columns.get_loc("ward_name") + 1, "ward_name_unsigned", "")
-
-
-province_df = df[["System Mã Tỉnh", "Thành Phố"]].rename(columns=column_mapping_province)
-district_df = df[["System Mã Quận Huyện", "Quận Huyện"]].rename(columns=column_mapping_district)
-ward_df = df[["System Ward Code", "Phường Xã"]].rename(columns=column_mapping_ward)
-
-province_df.insert(province_df.columns.get_loc("province_name") + 1, "province_name_unsigned", "")
-district_df.insert(district_df.columns.get_loc("district_name") + 1, "district_name_unsigned", "")
-ward_df.insert(ward_df.columns.get_loc("ward_name") + 1, "ward_name_unsigned", "")
-
-gov_master_df['ward_id'] = pd.to_numeric(gov_master_df['ward_id'], errors='coerce').astype('Int64')  
-ward_df['id'] = pd.to_numeric(ward_df['id'], errors='coerce').astype('Int64')
-print(gov_master_df.dtypes)
-print(province_df.dtypes)
-print(district_df.dtypes)
-print(ward_df.dtypes)
-
-
-engine = create_engine(connection_string)
-
-# Define data types for each table
-province_dtypes = {
-    "id": "INT",
-    "province_name": "NVARCHAR(255)",
-    "province_name_unsigned": "NVARCHAR(255)",
-}
-
-district_dtypes = {
-    "id": "INT",
-    "district_name": "NVARCHAR(255)",
-    "district_name_unsigned": "NVARCHAR(255)",
-}
-
-ward_dtypes = {
-    "id": "INT",
-    "ward_name": "NVARCHAR(255)",
-    "ward_name_unsigned": "NVARCHAR(255)",
-}
-
-gov_master_dtypes = {
-    "province_id": "INT",
-    "province_name": "NVARCHAR(255)",
-    "province_name_unsigned": "NVARCHAR(255)",
-    "district_id": "INT",
-    "district_name": "NVARCHAR(255)",
-    "district_name_unsigned": "NVARCHAR(255)",
-    "ward_id": "INT",
-    "ward_name": "NVARCHAR(255)",
-    "ward_name_unsigned": "NVARCHAR(255)",
-}
-For this code, now create 4 sql server tables named gov_master,province,district and ward to store the 4 df with respective name and with the predefined data type for each column
+# Execute the SQL commands
+with engine.connect() as connection:
+    connection.execute(text(create_gov_master_table))
+    connection.execute(text(create_province_table))
+    connection.execute(text(create_district_table))
+    connection.execute(text(create_ward_table))
