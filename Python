@@ -45,3 +45,43 @@ with engine.connect() as connection:
     connection.execute(text(create_province_table))
     connection.execute(text(create_district_table))
     connection.execute(text(create_ward_table))
+
+# Define custom data types for SQL Server compatibility
+from sqlalchemy.types import Integer, NVARCHAR
+
+# Custom dtype mapping
+province_dtypes = {
+    "id": Integer(),
+    "province_name": NVARCHAR(length=255),
+    "province_name_unsigned": NVARCHAR(length=255)
+}
+
+district_dtypes = {
+    "id": Integer(),
+    "district_name": NVARCHAR(length=255),
+    "district_name_unsigned": NVARCHAR(length=255)
+}
+
+ward_dtypes = {
+    "id": Integer(),
+    "ward_name": NVARCHAR(length=255),
+    "ward_name_unsigned": NVARCHAR(length=255)
+}
+
+gov_master_dtypes = {
+    "province_id": Integer(),
+    "province_name": NVARCHAR(length=255),
+    "province_name_unsigned": NVARCHAR(length=255),
+    "district_id": Integer(),
+    "district_name": NVARCHAR(length=255),
+    "district_name_unsigned": NVARCHAR(length=255),
+    "ward_id": Integer(),
+    "ward_name": NVARCHAR(length=255),
+    "ward_name_unsigned": NVARCHAR(length=255)
+}
+
+# Insert data from DataFrame to SQL table
+province_df.to_sql('province', con=engine, index=False, if_exists='append', dtype=province_dtypes)
+district_df.to_sql('district', con=engine, index=False, if_exists='append', dtype=district_dtypes)
+ward_df.to_sql('ward', con=engine, index=False, if_exists='append', dtype=ward_dtypes)
+gov_master_df.to_sql('gov_master', con=engine, index=False, if_exists='append', dtype=gov_master_dtypes)
