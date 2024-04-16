@@ -1,10 +1,21 @@
 import pandas as pd
 import sqlalchemy
 from sqlalchemy import create_engine
-from sqlalchemy.types import NVARCHAR,Integer
+from sqlalchemy.types import NVARCHAR,INT
 import openpyxl
 import pyodbc
-from config import excel_file,connection_string
+
+excel_file = "C:\\Validation Tool\\Database\\GOV.xlsx" #Location of gov_master.xlsx
+
+server = 'localhost'
+database = 'GovMaster'
+username = 'sql_developer'
+password = '12345'
+driver = 'ODBC Driver 17 for SQL Server'
+
+connection_string = f'mssql+pyodbc://{username}:{password}@{server}/{database}?driver={driver}'
+
+engine = create_engine(connection_string)
 
 df = pd.read_excel(excel_file)
 
@@ -46,25 +57,42 @@ ward_df.insert(ward_df.columns.get_loc("ward_name") + 1, "ward_name_unsigned", "
 
 gov_master_df['ward_id'] = pd.to_numeric(gov_master_df['ward_id'], errors='coerce').astype('Int64')  
 ward_df['id'] = pd.to_numeric(ward_df['id'], errors='coerce').astype('Int64')
-print(gov_master_df)
+print(gov_master_df.dtypes)
+print(province_df.dtypes)
+print(district_df.dtypes)
+print(ward_df.dtypes)
 
-column_data_types = {
-    "province_name": NVARCHAR(length=255),
-    "district_name": NVARCHAR(length=255),
-    "ward_name": NVARCHAR(length=255),
-    "province_name_unsigned": NVARCHAR(length=255),
-    "district_name_unsigned": NVARCHAR(length=255),
-    "ward_name_unsigned": NVARCHAR(length=255),
-    "province_id": Integer(),
-    "district_id": Integer(),
-    "ward_id": Integer()
-}
 
 engine = create_engine(connection_string)
 
-gov_master_df.to_sql('gov_master', engine, if_exists='replace', index=False, dtype=column_data_types)
-province_df.to_sql('province', engine, if_exists='replace', index=False, dtype={"id": Integer(), "province_name": NVARCHAR(length=255), "province_name_unsigned": NVARCHAR(length=255)})
-district_df.to_sql('district', engine, if_exists='replace', index=False, dtype={"id": Integer(), "district_name": NVARCHAR(length=255), "district_name_unsigned": NVARCHAR(length=255)})
-ward_df.to_sql('ward', engine, if_exists='replace', index=False, dtype={"id": Integer(), "ward_name": NVARCHAR(length=255), "ward_name_unsigned": NVARCHAR(length=255)})
+# Define data types for each table
+province_dtypes = {
+    "id": "INT",
+    "province_name": "NVARCHAR(255)",
+    "province_name_unsigned": "NVARCHAR(255)",
+}
 
-Fix this
+district_dtypes = {
+    "id": "INT",
+    "district_name": "NVARCHAR(255)",
+    "district_name_unsigned": "NVARCHAR(255)",
+}
+
+ward_dtypes = {
+    "id": "INT",
+    "ward_name": "NVARCHAR(255)",
+    "ward_name_unsigned": "NVARCHAR(255)",
+}
+
+gov_master_dtypes = {
+    "province_id": "INT",
+    "province_name": "NVARCHAR(255)",
+    "province_name_unsigned": "NVARCHAR(255)",
+    "district_id": "INT",
+    "district_name": "NVARCHAR(255)",
+    "district_name_unsigned": "NVARCHAR(255)",
+    "ward_id": "INT",
+    "ward_name": "NVARCHAR(255)",
+    "ward_name_unsigned": "NVARCHAR(255)",
+}
+For this code, now create 4 sql server tables named gov_master,province,district and ward to store the 4 df with respective name and with the predefined data type for each column
