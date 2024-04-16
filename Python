@@ -1,5 +1,13 @@
-Exception has occurred: ValueError
-province_id (INTEGER) not a string
-  File "C:\Validation Tool\project-one\apps\Gov_master\Migrate.py", line 64, in <module>
-    gov_master_df.to_sql('gov_master', con=engine, dtype=column_data_types, index=False, if_exists='replace')
-ValueError: province_id (INTEGER) not a string
+from sqlalchemy.types import Integer, NVARCHAR
+
+column_data_types = {
+    "province_id": Integer(),
+    "province_name": NVARCHAR(length=255),
+    "province_name_unsigned": NVARCHAR(length=255),
+    "district_id": Integer(),
+    "district_name": NVARCHAR(length=255),
+    "district_name_unsigned": NVARCHAR(length=255),
+    "ward_id": Integer(),
+    "ward_name": NVARCHAR(length=255),
+    "ward_name_unsigned": NVARCHAR(length=255)
+}
