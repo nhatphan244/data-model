@@ -1,39 +1,78 @@
-# Define data types for SQL Server to ensure compatibility
-from sqlalchemy.types import Integer, NVARCHAR, Unicode
+import pandas as pd
+import sqlalchemy
+from sqlalchemy import create_engine
+from sqlalchemy.types import NVARCHAR,Integer
+import openpyxl
+import pyodbc
+from config import excel_file,connection_string
+import unicodedata
+import re
 
-# Specify the data types for each column that corresponds to SQL table structure
-province_dtypes = {
-    "id": Integer(),
-    "province_name": NVARCHAR(length=255),
-    "province_name_unsigned": NVARCHAR(length=255)
+
+df = pd.read_excel(excel_file)
+
+
+column_mapping_gov_master = {
+    "System Mã Tỉnh": "province_id",
+    "Thành Phố": "province_name",
+    "System Mã Quận Huyện": "district_id",
+    "Quận Huyện": "district_name",
+    "System Ward Code": "ward_id",
+    "Phường Xã": "ward_name"
 }
 
-district_dtypes = {
-    "id": Integer(),
+column_mapping_province = {
+    "System Mã Tỉnh": "id",
+    "Thành Phố": "province_name"
+}
+column_mapping_district ={
+    "System Mã Quận Huyện": "id",
+    "Quận Huyện": "district_name",
+}
+column_mapping_ward ={
+    "System Ward Code": "id",
+    "Phường Xã": "ward_name"
+}
+
+gov_master_df = df.rename(columns=column_mapping_gov_master)
+gov_master_df.insert(gov_master_df.columns.get_loc("province_name") + 1, "province_name_unsigned", "")
+gov_master_df.insert(gov_master_df.columns.get_loc("district_name") + 1, "district_name_unsigned", "")
+gov_master_df.insert(gov_master_df.columns.get_loc("ward_name") + 1, "ward_name_unsigned", "")
+
+
+province_df = df[["System Mã Tỉnh", "Thành Phố"]].rename(columns=column_mapping_province)
+district_df = df[["System Mã Quận Huyện", "Quận Huyện"]].rename(columns=column_mapping_district)
+ward_df = df[["System Ward Code", "Phường Xã"]].rename(columns=column_mapping_ward)
+
+province_df.insert(province_df.columns.get_loc("province_name") + 1, "province_name_unsigned", "")
+district_df.insert(district_df.columns.get_loc("district_name") + 1, "district_name_unsigned", "")
+ward_df.insert(ward_df.columns.get_loc("ward_name") + 1, "ward_name_unsigned", "")
+province_df['province_name_unsigned'] = province_df['province_name'].apply(normalowerize_unsign)
+district_df['district_name_unsigned'] = district_df['district_name'].apply(normalowerize_unsign)
+ward_df['ward_name_unsigned'] = ward_df['ward_name'].apply(normalowerize_unsign)
+gov_master_df['ward_id'] = pd.to_numeric(gov_master_df['ward_id'], errors='coerce').astype('Int64')  
+ward_df['id'] = pd.to_numeric(ward_df['id'], errors='coerce').astype('Int64')
+
+
+column_data_types = {
+    "province_name": NVARCHAR(length=255),
     "district_name": NVARCHAR(length=255),
-    "district_name_unsigned": NVARCHAR(length=255)
-}
-
-ward_dtypes = {
-    "id": Integer(),
-    "ward_name": NVARCHAR(length=255),
-    "ward_name_unsigned": NVARCHAR(length=255)
-}
-
-gov_master_dtypes = {
-    "province_id": Integer(),
-    "province_name": NVARCHAR(length=255),
+    "ward_name": NVARCHAR(length=255, nullable=True),
     "province_name_unsigned": NVARCHAR(length=255),
-    "district_id": Integer(),
-    "district_name": NVARCHAR(length=255),
     "district_name_unsigned": NVARCHAR(length=255),
-    "ward_id": Integer(),
-    "ward_name": NVARCHAR(length=255),
-    "ward_name_unsigned": NVARCHAR(length=255)
+    "ward_name_unsigned": NVARCHAR(length=255),
+    "province_id": Integer(),
+    "district_id": Integer(),
+    "ward_id": Integer(nullable=True)
 }
 
-# Use to_sql method to insert data into each table
-province_df.to_sql('province', con=engine, if_exists='append', index=False, dtype=province_dtypes)
-district_df.to_sql('district', con=engine, if_exists='append', index=False, dtype=district_dtypes)
-ward_df.to_sql('ward', con=engine, if_exists='append', index=False, dtype=ward_dtypes)
-gov_master_df.to_sql('gov_master', con=engine, if_exists='append', index=False, dtype=gov_master_dtypes)
+
+
+
+# engine = create_engine(connection_string)
+
+# gov_master_df.to_sql(name='gov_master', con=engine, if_exists='replace', index=False, dtype=column_data_types)
+# province_df.to_sql(name='province', con=engine, if_exists='replace', index=False, dtype=column_data_types)
+# district_df.to_sql(name='district', con=engine, if_exists='replace', index=False, dtype=column_data_types)
+# ward_df.to_sql(name='ward', con=engine, if_exists='replace', index=False, dtype=column_data_types)
+For this code, now I want to set province_id as primary key for province table, district_id as primary key for district table, ward_id as primary key for ward and again ward_id as primary key for gov_master table,help
