@@ -1,3 +1,10 @@
+from tkinter import Tk, filedialog
+import os
+import pandas as pd
+import time
+from datetime import datetime
+from tqdm import tqdm
+
 def merge():
     root = Tk()
     root.withdraw()
@@ -6,43 +13,37 @@ def merge():
     root.attributes('-topmost', False)  
     root.destroy()
 
-    if not folder_selected:  
+    if not folder_selected:
         print("Không có folder được chọn.")
-        exit()
+        return
 
     script_dir = os.path.dirname(__file__)
     merge_folder_path = os.path.join(script_dir, "merge")
     if not os.path.exists(merge_folder_path):
         os.makedirs(merge_folder_path)
 
-    # Get list of Excel files in the selected folder
     excel_files = [f for f in os.listdir(folder_selected) if f.endswith('.xlsx')]
 
     if not excel_files:
         print("Không tìm thấy file Excel trong thư mục đã chọn")
-        exit()
+        return
 
     merged_df = pd.DataFrame()
     merge_log = []
 
     start_time = time.time()
 
-    # File path + df + stack df
-    for idx, file in enumerate(excel_files, start=1):
+    for idx, file in enumerate(tqdm(excel_files, desc='Merging files'), start=1):
         file_path = os.path.join(folder_selected, file)
         df = pd.read_excel(file_path)
         merge_log.append((file, len(merged_df) + 1, len(merged_df) + len(df)))
         merged_df = pd.concat([merged_df, df], ignore_index=True)
 
-    # Đặt tên file
     current_datetime = datetime.now().strftime("%d%m%Y_%H%M%S")
     merged_filename = f"{current_datetime}.xlsx"
     merged_file_path = os.path.join(merge_folder_path, merged_filename)
-
-    # Merge file
     merged_df.to_excel(merged_file_path, index=False)
 
-    # Tạo log
     log_filename = f"merge_log_{current_datetime}.txt"
     log_file_path = os.path.join(merge_folder_path, log_filename)
     with open(log_file_path, 'w', encoding='utf-8') as log_file:
@@ -57,8 +58,3 @@ def merge():
     print(f"File log '{log_filename}' được tạo trong thư mục merge")
     print(f"Tổng thời gian: {total_time:.2f} giây")
 
-For this code, I want to employ a progress bar so that it track the progress of the run time of the entire function, the progress bar will update based on the total file got merged in, and when it hits 100%, it will print the
- print(f"File '{merged_filename}' được merge thành công")
-    print(f"File log '{log_filename}' được tạo trong thư mục merge")
-    print(f"Tổng thời gian: {total_time:.2f} giây")
- 
