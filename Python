@@ -1,7 +1,11 @@
-from tkinter import Tk, filedialog
-import os
 import pandas as pd
+import os
+from tkinter import Tk, filedialog
+from datetime import datetime
+import time
 from tqdm import tqdm
+
+
 
 def split():
     root = Tk()
@@ -23,70 +27,175 @@ def split():
 
     # Đọc excel
     df = pd.read_excel(filename)
-    df_split_input = pd.read_excel(filename, sheet_name='split_input', header=None)
-    num_rows_to_split = int(df_split_input.iloc[0, 1])  # Số dòng tối đa trong mỗi file
+    na_col = df['Tỉnh Thành'].isnull().all()
+    flag_empty = na_col
+    flag_affirm =  not na_col
 
-    # Kiểm tra cột Tỉnh Thành có dữ liệu không
-    if df['Tỉnh Thành'].isnull().all():  # Split by rows if 'Tỉnh Thành' is completely null
-        with tqdm(total=(len(df) // num_rows_to_split) + (1 if len(df) % num_rows_to_split != 0 else 0), desc='Đang chia file theo dòng') as pbar:
-            for start in range(0, len(df), num_rows_to_split):
-                end = min(start + num_rows_to_split, len(df))
-                df_subset = df.iloc[start:end]
-                file_name = f"{os.path.splitext(os.path.basename(filename))[0]} [Từ {start + 1} Đến {end}].xlsx"
-                file_path = os.path.join(folder_name, file_name)
-                df_subset.to_excel(file_path, index=False)
-                print(f"Tạo thành công File '{file_name}'")
-                pbar.update(1)
-    else:  # If 'Tỉnh Thành' has data, read flags to determine splitting by province or district
-        province_flag = df_split_input.iloc[1, 1].strip().lower() == 'y'
-        district_flag = df_split_input.iloc[2, 1].strip().lower() == 'y'
+    if flag_empty:
+        df_split_input = pd.read_excel(filename, sheet_name='split_input', header=None)
+        print(df_split_input)
+        num_rows_to_split = df_split_input.iloc[0, 1]
 
-        if province_flag and not district_flag:
-            # Split by province only
-            process_split_by_province(df, folder_name, num_rows_to_split)
-        elif province_flag and district_flag:
-            # Split by both province and district
-            process_split_by_province_and_district(df, folder_name, num_rows_to_split)
+        total_rows = len(df)
+        num_files = total_rows // num_rows_to_split
 
-def process_split_by_province(df, folder_name, num_rows_to_split):
-    provinces = df['Tỉnh Thành'].unique()
-    with tqdm(total=len(provinces), desc='Đang chia file theo Tỉnh') as pbar:
-        for province in provinces:
-            province_df = df[df['Tỉnh Thành'] == province]
-            save_split_files(province_df, num_rows_to_split, folder_name, province)
-            pbar.update(1)
-
-def process_split_by_province_and_district(df, folder_name, num_rows_to_split):
-    provinces = df['Tỉnh Thành'].unique()
-    with tqdm(total=len(provinces), desc='Đang chia file theo Tỉnh và Quận') as pbar:
-        for province in provinces:
-            province_df = df[df['Tỉnh Thành'] == province]
-            districts = province_df['Quận'].unique()
-            for district in districts:
-                district_df = province_df[province_df['Quận'] == district]
-                save_split_files(district_df, num_rows_to_split, folder_name, f"{province}_{district}")
-            pbar.update(1)
-
-def save_split_files(df, num_rows_to_split, folder_name, label):
-    total_rows = len(df)
-    num_files = total_rows // num_rows_to_split
-    remaining_rows = total_rows % num_rows_to_split
-    with tqdm(total=num_files + (1 if remaining_rows else 0), desc=f'Đang tạo file cho {label}') as pbar:
         for i in range(num_files):
             start_row = i * num_rows_to_split
             end_row = min((i + 1) * num_rows_to_split, total_rows)
-            df_subset = df.iloc[start_row:end_row]
-            file_name = f"{label} [Từ {start_row + 1} Đến {end_row}].xlsx"
+            df_subset = df.iloc[start_row:end_row, :]
+            file_name = f"{os.path.splitext(os.path.basename(filename))[0]} [From {start_row + 1} To {end_row}].xlsx"
             file_path = os.path.join(folder_name, file_name)
             df_subset.to_excel(file_path, index=False)
             print(f"Tạo thành công File '{file_name}'")
-            pbar.update(1)
 
-        if remaining_rows:
+        if total_rows % num_rows_to_split != 0:
             start_row = num_files * num_rows_to_split
-            df_subset = df.iloc[start_row:total_rows]
-            file_name = f"{label} [Từ {start_row + 1} Đến {total_rows}].xlsx"
+            df_subset = df.iloc[start_row:, :]
+            file_name = f"{os.path.splitext(os.path.basename(filename))[0]} [From {start_row + 1} To {total_rows}].xlsx"
             file_path = os.path.join(folder_name, file_name)
             df_subset.to_excel(file_path, index=False)
             print(f"Tạo thành công File '{file_name}'")
-            pbar.update(1)
+
+    if flag_affirm:
+        df_split_input = pd.read_excel(filename, sheet_name='split_input', header=None)
+        print(df_split_input)
+        # Flag input
+        num_rows_to_split = df_split_input.iloc[0, 1]
+        province_flag = df_split_input.iloc[1, 1]
+        district_flag = df_split_input.iloc[2, 1]
+        if province_flag == 'y' and district_flag == 'n':
+            provinces = df['Tỉnh Thành'].unique()
+            print(provinces)
+            for province in provinces:
+                province_df = df[df['Tỉnh Thành'] == province]
+                total_rows = len(province_df)
+                num_files = total_rows // num_rows_to_split
+
+                for i in range(num_files):
+                    start_row = i * num_rows_to_split
+                    end_row = min((i + 1) * num_rows_to_split, total_rows)
+                    df_subset = province_df.iloc[start_row:end_row, :]
+                    file_name = f"{os.path.splitext(os.path.basename(filename))[0]}_{province} [From {start_row + 1} To {end_row}].xlsx"
+                    file_path = os.path.join(folder_name, file_name)
+                    df_subset.to_excel(file_path, index=False)
+                    print(f"Tạo thành công File '{file_name}'")
+
+                if total_rows % num_rows_to_split != 0:
+                    start_row = num_files * num_rows_to_split
+                    df_subset = province_df.iloc[start_row:, :]
+                    file_name = f"{os.path.splitext(os.path.basename(filename))[0]}_{province} [From {start_row + 1} To {total_rows}].xlsx"
+                    file_path = os.path.join(folder_name, file_name)
+                    df_subset.to_excel(file_path, index=False)
+                    print(f"Tạo thành công File '{file_name}'")
+
+        else:
+            provinces = df['Tỉnh Thành'].unique()
+            for province in provinces:
+                province_df = df[df['Tỉnh Thành'] == province]
+                districts = province_df['Quận'].unique()
+                for district in districts:
+                    district_df = province_df[province_df['Quận'] == district]
+                    total_rows = len(district_df)
+                    num_files = total_rows // num_rows_to_split
+
+                    for i in range(num_files):
+                        start_row = i * num_rows_to_split
+                        end_row = min((i + 1) * num_rows_to_split, total_rows)
+                        df_subset = district_df.iloc[start_row:end_row, :]
+                        file_name = f"{os.path.splitext(os.path.basename(filename))[0]}_{province}_{district} [From {start_row + 1} To {end_row}].xlsx"
+                        file_path = os.path.join(folder_name, file_name)
+                        df_subset.to_excel(file_path, index=False)
+                        print(f"Tạo thành công File '{file_name}'")
+
+                    if total_rows % num_rows_to_split != 0:
+                        start_row = num_files * num_rows_to_split
+                        df_subset = district_df.iloc[start_row:, :]
+                        file_name = f"{os.path.splitext(os.path.basename(filename))[0]}_{province}_{district} [From {start_row + 1} To {total_rows}].xlsx"
+                        file_path = os.path.join(folder_name, file_name)
+                        df_subset.to_excel(file_path, index=False)
+                        print(f"Tạo thành công File '{file_name}'")
+
+def merge():
+    root = Tk()
+    root.withdraw()
+    root.attributes('-topmost', True)
+    folder_selected = filedialog.askdirectory(title="Chọn folder chứa file(s) excel cần merge")
+    root.attributes('-topmost', False)
+    root.destroy()
+
+    if not folder_selected:
+        print("Không có folder được chọn.")
+        return
+
+    script_dir = os.path.dirname(__file__)
+    merge_folder_path = os.path.join(script_dir, "merge")
+    if not os.path.exists(merge_folder_path):
+        os.makedirs(merge_folder_path)
+
+    excel_files = [f for f in os.listdir(folder_selected) if f.endswith('.xlsx')]
+
+    if not excel_files:
+        print("Không tìm thấy file Excel trong thư mục đã chọn")
+        return
+    
+    print(f"Tìm thấy {len(excel_files)}  file(s) Excel trong thư mục '{folder_selected}' được chọn:")
+
+    merged_df = pd.DataFrame()
+    merge_log = []
+    
+    start_time = time.time()
+
+    # Progress bar cho  merging files
+    print("Merge Files Excel...")
+    with tqdm(total=len(excel_files), desc='Merging Files') as pbar:
+        for file in excel_files:
+            file_path = os.path.join(folder_selected, file)
+            df = pd.read_excel(file_path)
+            merge_log.append((file, len(merged_df) + 1, len(merged_df) + len(df)))
+            merged_df = pd.concat([merged_df, df], ignore_index=True)
+            pbar.set_description(f'Merging File: {file}')
+            pbar.update(1)  
+
+    # Progress bar cho viết DataFrame vào Excel
+    print("Viết merged dataframe vào file Excel...")
+    with tqdm(total=1, desc='Tạo file Excel mới') as pbar:
+        current_datetime = datetime.now().strftime("%d%m%Y_%H%M%S")
+        merged_filename = f"{current_datetime}.xlsx"
+        merged_file_path = os.path.join(merge_folder_path, merged_filename)
+        merged_df.to_excel(merged_file_path, index=False)
+        pbar.update(1)  
+
+    # Progress bar cho  log file
+    print("Viết merge log...")
+    with tqdm(total=1, desc='Viết log file') as pbar:
+        log_filename = f"merge_log_{current_datetime}.txt"
+        log_file_path = os.path.join(merge_folder_path, log_filename)
+        with open(log_file_path, 'w', encoding='utf-8') as log_file:
+            log_file.write("List các file được merge:\n")
+            for idx, (file, start, end) in enumerate(merge_log, start=1):
+                log_file.write(f"{idx}. {file}: Từ dòng {start} tới dòng {end}\n")
+        pbar.update(1)  
+
+    end_time = time.time()
+    total_time = end_time - start_time
+
+    print(f"File '{merged_filename}' được merge thành công")
+    print(f"File log '{log_filename}' được tạo trong thư mục merge")
+    print(f"Tổng thời gian: {total_time:.2f} giây")
+
+#main
+def main():
+     while True:
+        choice = input("Chọn tính năng mà bạn muốn (split: s, merge: m): ").lower()
+
+        if choice == 's':
+            split()
+            break
+        elif choice == 'm':
+            merge()
+            break
+        else:
+            print("Tính năng không hợp lệ. Vui lòng chọn lại.")
+
+if __name__ == "__main__":
+    main()
