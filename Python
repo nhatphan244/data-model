@@ -1,4 +1,64 @@
- province ADD PRIMARY KEY (province_id);")
-    con.execute("ALTER TABLE district ADD PRIMARY KEY (district_id);")
-    con.execute("ALTER TABLE ward ADD PRIMARY KEY (ward_id);")
-    con.execute("ALTER TABLE gov_master ADD PRIMARY KEY (ward_id);")
+def merge():
+    root = Tk()
+    root.withdraw()
+    root.attributes('-topmost', True) 
+    folder_selected = filedialog.askdirectory(title="Chọn folder chứa file(s) excel cần merge")
+    root.attributes('-topmost', False)  
+    root.destroy()
+
+    if not folder_selected:  
+        print("Không có folder được chọn.")
+        exit()
+
+    script_dir = os.path.dirname(__file__)
+    merge_folder_path = os.path.join(script_dir, "merge")
+    if not os.path.exists(merge_folder_path):
+        os.makedirs(merge_folder_path)
+
+    # Get list of Excel files in the selected folder
+    excel_files = [f for f in os.listdir(folder_selected) if f.endswith('.xlsx')]
+
+    if not excel_files:
+        print("Không tìm thấy file Excel trong thư mục đã chọn")
+        exit()
+
+    merged_df = pd.DataFrame()
+    merge_log = []
+
+    start_time = time.time()
+
+    # File path + df + stack df
+    for idx, file in enumerate(excel_files, start=1):
+        file_path = os.path.join(folder_selected, file)
+        df = pd.read_excel(file_path)
+        merge_log.append((file, len(merged_df) + 1, len(merged_df) + len(df)))
+        merged_df = pd.concat([merged_df, df], ignore_index=True)
+
+    # Đặt tên file
+    current_datetime = datetime.now().strftime("%d%m%Y_%H%M%S")
+    merged_filename = f"{current_datetime}.xlsx"
+    merged_file_path = os.path.join(merge_folder_path, merged_filename)
+
+    # Merge file
+    merged_df.to_excel(merged_file_path, index=False)
+
+    # Tạo log
+    log_filename = f"merge_log_{current_datetime}.txt"
+    log_file_path = os.path.join(merge_folder_path, log_filename)
+    with open(log_file_path, 'w', encoding='utf-8') as log_file:
+        log_file.write("List các file được merge:\n")
+        for idx, (file, start, end) in enumerate(merge_log, start=1):
+            log_file.write(f"{idx}. {file}: Từ dòng {start} tới dòng {end}\n")
+
+    end_time = time.time()
+    total_time = end_time - start_time
+
+    print(f"File '{merged_filename}' được merge thành công")
+    print(f"File log '{log_filename}' được tạo trong thư mục merge")
+    print(f"Tổng thời gian: {total_time:.2f} giây")
+
+For this code, I want to employ a progress bar so that it track the progress of the run time of the entire function, the progress bar will update based on the total file got merged in, and when it hits 100%, it will print the
+ print(f"File '{merged_filename}' được merge thành công")
+    print(f"File log '{log_filename}' được tạo trong thư mục merge")
+    print(f"Tổng thời gian: {total_time:.2f} giây")
+ 
