@@ -31,38 +31,35 @@ def merge():
     merged_df = pd.DataFrame()
     merge_log = []
 
-    start_time = time.time()
+    # Progress bar for merging files
+    print("Merging Excel files...")
+    with tqdm(total=len(excel_files), desc='Merging Files') as pbar:
+        for file in excel_files:
+            file_path = os.path.join(folder_selected, file)
+            df = pd.read_excel(file_path)
+            merge_log.append((file, len(merged_df) + 1, len(merged_df) + len(df)))
+            merged_df = pd.concat([merged_df, df], ignore_index=True)
+            pbar.update(1)  # Update progress for each file merged
 
-    # Initialize tqdm with an extra step for the file writing
-    total_steps = len(excel_files) + 1
-    progress_bar = tqdm(total=total_steps, desc='Merging files')
+    # Progress bar for saving the DataFrame to Excel
+    print("Saving merged DataFrame to Excel...")
+    with tqdm(total=1, desc='Saving Excel') as pbar:
+        current_datetime = datetime.now().strftime("%d%m%Y_%H%M%S")
+        merged_filename = f"{current_datetime}.xlsx"
+        merged_file_path = os.path.join(merge_folder_path, merged_filename)
+        merged_df.to_excel(merged_file_path, index=False)
+        pbar.update(1)  # Complete the progress upon saving
 
-    for file in excel_files:
-        file_path = os.path.join(folder_selected, file)
-        df = pd.read_excel(file_path)
-        merge_log.append((file, len(merged_df) + 1, len(merged_df) + len(df)))
-        merged_df = pd.concat([merged_df, df], ignore_index=True)
-        progress_bar.update(1)  # Update progress after processing each file
+    # Progress bar for writing the log file
+    print("Writing merge log...")
+    with tqdm(total=1, desc='Writing Log File') as pbar:
+        log_filename = f"merge_log_{current_datetime}.txt"
+        log_file_path = os.path.join(merge_folder_path, log_filename)
+        with open(log_file_path, 'w', encoding='utf-8') as log_file:
+            log_file.write("List các file được merge:\n")
+            for idx, (file, start, end) in enumerate(merge_log, start=1):
+                log_file.write(f"{idx}. {file}: Từ dòng {start} tới dòng {end}\n")
+        pbar.update(1)  # Complete the progress upon writing the log
 
-    current_datetime = datetime.now().strftime("%d%m%Y_%H%M%S")
-    merged_filename = f"{current_datetime}.xlsx"
-    merged_file_path = os.path.join(merge_folder_path, merged_filename)
-    merged_df.to_excel(merged_file_path, index=False)
-    progress_bar.update(1)  # Update progress for the save operation
-
-    log_filename = f"merge_log_{current_datetime}.txt"
-    log_file_path = os.path.join(merge_folder_path, log_filename)
-    with open(log_file_path, 'w', encoding='utf-8') as log_file:
-        log_file.write("List các file được merge:\n")
-        for idx, (file, start, end) in enumerate(merge_log, start=1):
-            log_file.write(f"{idx}. {file}: Từ dòng {start} tới dòng {end}\n")
-
-    progress_bar.close()  # Close the progress bar
-
-    end_time = time.time()
-    total_time = end_time - start_time
-
-    print(f"File '{merged_filename}' được merge thành công")
-    print(f"File log '{log_filename}' được tạo trong thư mục merge")
-    print(f"Tổng thời gian: {total_time:.2f} giây")
+    print("Merge process completed successfully.")
 
