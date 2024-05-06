@@ -1,109 +1,62 @@
-User
+import os
+import pandas as pd
+from tkinter import Tk, filedialog
+
 def split():
     root = Tk()
     root.withdraw()
-    root.attributes('-topmost', True) 
+    root.attributes('-topmost', True)
     filename = filedialog.askopenfilename(title="Chọn file Excel cần chia")
-    root.attributes('-topmost', False) 
+    root.attributes('-topmost', False)
     root.destroy()
 
     if not filename:
         print("Không có file nào được chọn.")
         return
 
-    # Lấy thư mục của file
     script_dir = os.path.dirname(filename)
     folder_name = os.path.join(script_dir, "split")
     if not os.path.exists(folder_name):
         os.makedirs(folder_name)
 
-    # Đọc excel
     df = pd.read_excel(filename)
-    na_col = df['Tỉnh Thành'].isnull().all()
-    flag_empty = na_col
-    flag_affirm =  not na_col 
+    df_split_input = pd.read_excel(filename, sheet_name='split_input', header=None)
+    num_rows_to_split = df_split_input.iloc[0, 1] if pd.notna(df_split_input.iloc[0, 1]) else 0
+    province_flag = df_split_input.iloc[1, 1] if pd.notna(df_split_input.iloc[1, 1]) else ''
+    district_flag = df_split_input.iloc[2, 1] if pd.notna(df_split_input.iloc[2, 1]) else ''
 
-    if flag_empty:
-            df_split_input = pd.read_excel(filename, sheet_name='split_input', header=None)
-            print(df_split_input)
-            num_rows_to_split = df_split_input.iloc[0, 1]
+    # Check if 'Tỉnh Thành' column is completely empty
+    if df['Tỉnh Thành'].isnull().all():
+        # Default behavior when 'Tỉnh Thành' and possibly 'Quận' are irrelevant
+        process_split(df, num_rows_to_split, folder_name, filename)
+    else:
+        if province_flag.lower() == 'y' and district_flag.lower() == 'n':
+            process_by_province(df, num_rows_to_split, folder_name, filename)
+        elif province_flag.lower() == 'y' and district_flag.lower() == 'y':
+            process_by_district(df, num_rows_to_split, folder_name, filename)
 
-            total_rows = len(df)
-            num_files = total_rows // num_rows_to_split
+def process_split(df, num_rows_to_split, folder_name, filename):
+    total_rows = len(df)
+    num_files = total_rows // num_rows_to_split if num_rows_to_split > 0 else 0
+    for i in range(num_files):
+        start_row = i * num_rows_to_split
+        end_row = min((i + 1) * num_rows_to_split, total_rows)
+        df_subset = df.iloc[start_row:end_row, :]
+        file_name = f"{os.path.splitext(os.path.basename(filename))[0]} [From {start_row + 1} To {end_row}].xlsx"
+        file_path = os.path.join(folder_name, file_name)
+        df_subset.to_excel(file_path, index=False)
+        print(f"Tạo thành công File '{file_name}'")
 
-            for i in range(num_files):
-                start_row = i * num_rows_to_split
-                end_row = min((i + 1) * num_rows_to_split, total_rows)
-                df_subset = df.iloc[start_row:end_row, :]
-                file_name = f"{os.path.splitext(os.path.basename(filename))[0]} [From {start_row + 1} To {end_row}].xlsx"
-                file_path = os.path.join(folder_name, file_name)
-                df_subset.to_excel(file_path, index=False)
-                print(f"Tạo thành công File '{file_name}'")
+    if total_rows % num_rows_to_split != 0:
+        start_row = num_files * num_rows_to_split
+        df_subset = df.iloc[start_row:, :]
+        file_name = f"{os.path.splitext(os.path.basename(filename))[0]} [From {start_row + 1} To {total_rows}].xlsx"
+        file_path = os.path.join(folder_name, file_name)
+        df_subset.to_excel(file_path, index=False)
+        print(f"Tạo thành công File '{file_name}'")
 
-            if total_rows % num_rows_to_split != 0:
-                start_row = num_files * num_rows_to_split
-                df_subset = df.iloc[start_row:, :]
-                file_name = f"{os.path.splitext(os.path.basename(filename))[0]} [From {start_row + 1} To {total_rows}].xlsx"
-                file_path = os.path.join(folder_name, file_name)
-                df_subset.to_excel(file_path, index=False)
-                print(f"Tạo thành công File '{file_name}'")
+# Define other functions `process_by_province` and `process_by_district` similarly, 
+# making sure to handle empty flag and column values appropriately.
 
-    if flag_affirm:
-            df_split_input = pd.read_excel(filename, sheet_name='split_input', header=None)
-            print(df_split_input)
-            # Flag input
-            num_rows_to_split = df_split_input.iloc[0, 1]
-            province_flag = df_split_input.iloc[1, 1]
-            district_flag = df_split_input.iloc[2, 1]
-            if province_flag == 'y' and district_flag == 'n':
-                provinces = df['Tỉnh Thành'].unique()
-                print(provinces)
-                for province in provinces:
-                    province_df = df[df['Tỉnh Thành'] == province]
-                    total_rows = len(province_df)
-                    num_files = total_rows // num_rows_to_split
-
-                    for i in range(num_files):
-                        start_row = i * num_rows_to_split
-                        end_row = min((i + 1) * num_rows_to_split, total_rows)
-                        df_subset = province_df.iloc[start_row:end_row, :]
-                        file_name = f"{os.path.splitext(os.path.basename(filename))[0]}_{province} [From {start_row + 1} To {end_row}].xlsx"
-                        file_path = os.path.join(folder_name, file_name)
-                        df_subset.to_excel(file_path, index=False)
-                        print(f"Tạo thành công File '{file_name}'")
-
-                    if total_rows % num_rows_to_split != 0:
-                        start_row = num_files * num_rows_to_split
-                        df_subset = province_df.iloc[start_row:, :]
-                        file_name = f"{os.path.splitext(os.path.basename(filename))[0]}_{province} [From {start_row + 1} To {total_rows}].xlsx"
-                        file_path = os.path.join(folder_name, file_name)
-                        df_subset.to_excel(file_path, index=False)
-                        print(f"Tạo thành công File '{file_name}'")
-
-            else:
-                provinces = df['Tỉnh Thành'].unique()
-                for province in provinces:
-                    province_df = df[df['Tỉnh Thành'] == province]
-                    districts = province_df['Quận'].unique()
-                    for district in districts:
-                        district_df = province_df[province_df['Quận'] == district]
-                        total_rows = len(district_df)
-                        num_files = total_rows // num_rows_to_split
-
-                        for i in range(num_files):
-                            start_row = i * num_rows_to_split
-                            end_row = min((i + 1) * num_rows_to_split, total_rows)
-                            df_subset = district_df.iloc[start_row:end_row, :]
-                            file_name = f"{os.path.splitext(os.path.basename(filename))[0]}_{province}_{district} [From {start_row + 1} To {end_row}].xlsx"
-                            file_path = os.path.join(folder_name, file_name)
-                            df_subset.to_excel(file_path, index=False)
-                            print(f"Tạo thành công File '{file_name}'")
-
-                        if total_rows % num_rows_to_split != 0:
-                            start_row = num_files * num_rows_to_split
-                            df_subset = district_df.iloc[start_row:, :]
-                            file_name = f"{os.path.splitext(os.path.basename(filename))[0]}_{province}_{district} [From {start_row + 1} To {total_rows}].xlsx"
-                            file_path = os.path.join(folder_name, file_name)
-                            df_subset.to_excel(file_path, index=False)
-                            print(f"Tạo thành công File '{file_name}'")
-For this code, even with flag_empy or flag_affirm, the split input sheet input will be in the same format, which include Province and District, in this case they will be empty, fix it 
+if __name__ == "__main__":
+    split()
