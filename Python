@@ -1,4 +1,6 @@
- File "<frozen runpy>", line 88, in _run_code
+raceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
   File "C:\splitmerge\split_merge.py", line 173, in <module>
     main()
   File "C:\splitmerge\split_merge.py", line 164, in main
@@ -9,3 +11,5 @@
     split_and_save(district_df, num_rows_to_split, folder_name, filename, progress, f"{province}_{district}")
   File "C:\splitmerge\split_merge.py", line 84, in split_and_save
     file_name = f"{os.path.splitext(os.path.basename(filename))[0]}{extra_part} [From {start_row + 1} To {total_rows}].xlsx"
+                                                                    ^^^^^^^^^^
+UnboundLocalError: cannot access local variable 'extra_part' where it is not associated with a value
