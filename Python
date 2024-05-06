@@ -1,15 +1,21 @@
-raceback (most recent call last):
-  File "<frozen runpy>", line 198, in _run_module_as_main
-  File "<frozen runpy>", line 88, in _run_code
-  File "C:\splitmerge\split_merge.py", line 173, in <module>
-    main()
-  File "C:\splitmerge\split_merge.py", line 164, in main
-    split()
-  File "C:\splitmerge\split_merge.py", line 39, in split
-    process_by_district(df, num_rows_to_split, folder_name, filename)
-  File "C:\splitmerge\split_merge.py", line 66, in process_by_district
-    split_and_save(district_df, num_rows_to_split, folder_name, filename, progress, f"{province}_{district}")
-  File "C:\splitmerge\split_merge.py", line 84, in split_and_save
-    file_name = f"{os.path.splitext(os.path.basename(filename))[0]}{extra_part} [From {start_row + 1} To {total_rows}].xlsx"
-                                                                    ^^^^^^^^^^
-UnboundLocalError: cannot access local variable 'extra_part' where it is not associated with a value
+def split_and_save(df, num_rows_to_split, folder_name, filename, progress, label=""):
+    total_rows = len(df)
+    num_files = total_rows // num_rows_to_split
+    extra_part = f"_{label}" if label else ""  # Define extra_part at the start of the function
+
+    for i in range(num_files):
+        start_row = i * num_rows_to_split
+        end_row = min((i + 1) * num_rows_to_split, total_rows)
+        df_subset = df.iloc[start_row:end_row, :]
+        file_name = f"{os.path.splitext(os.path.basename(filename))[0]}{extra_part} [From {start_row + 1} To {end_row}].xlsx"
+        file_path = os.path.join(folder_name, file_name)
+        df_subset.to_excel(file_path, index=False)
+        progress.update(1)
+
+    if total_rows % num_rows_to_split != 0:
+        start_row = num_files * num_rows_to_split
+        df_subset = df.iloc[start_row:, :]
+        file_name = f"{os.path.splitext(os.path.basename(filename))[0]}{extra_part} [From {start_row + 1} To {total_rows}].xlsx"
+        file_path = os.path.join(folder_name, file_name)
+        df_subset.to_excel(file_path, index=False)
+        progress.update(1)
