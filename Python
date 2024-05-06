@@ -1,7 +1,61 @@
+import os
+import pandas as pd
+from tkinter import Tk, filedialog
+from tqdm import tqdm
+
+def split():
+    root = Tk()
+    root.withdraw()
+    root.attributes('-topmost', True)
+    filename = filedialog.askopenfilename(title="Chọn file Excel cần chia")
+    root.attributes('-topmost', False)
+    root.destroy()
+
+    if not filename:
+        print("Không có file nào được chọn.")
+        return
+
+    script_dir = os.path.dirname(filename)
+    folder_name = os.path.join(script_dir, "split")
+    if not os.path.exists(folder_name):
+        os.makedirs(folder_name)
+
+    df = pd.read_excel(filename)
+    df_split_input = pd.read_excel(filename, sheet_name='split_input', header=None)
+    num_rows_to_split = int(df_split_input.iloc[0, 1])
+    province_flag = df_split_input.iloc[1, 1]
+    district_flag = df_split_input.iloc[2, 1]
+
+    # Setup the progress bar for the total rows in the DataFrame
+    progress = tqdm(total=len(df), desc="Overall Progress")
+
+    if df['Tỉnh Thành'].isnull().all():  # Check if the 'Tỉnh Thành' column is entirely null
+        split_and_save(df, num_rows_to_split, folder_name, filename, progress)
+    else:
+        if province_flag == 'y' and district_flag == 'n':
+            process_by_province(df, num_rows_to_split, folder_name, filename, progress)
+        elif province_flag == 'y' and district_flag == 'y':
+            process_by_district(df, num_rows_to_split, folder_name, filename, progress)
+
+def process_by_province(df, num_rows_to_split, folder_name, filename, progress):
+    provinces = df['Tỉnh Thành'].unique()
+    for province in provinces:
+        province_df = df[df['Tỉnh Thành'] == province]
+        split_and_save(province_df, num_rows_to_split, folder_name, filename, progress, province)
+
+def process_by_district(df, num_rows_to_split, folder_name, filename, progress):
+    provinces = df['Tỉnh Thành'].unique()
+    for province in provinces:
+        province_df = df[df['Tỉnh Thành'] == province]
+        districts = province_df['Quận'].unique()
+        for district in districts:
+            district_df = province_df[province_df['Quận'] == district]
+            split_and_save(district_df, num_rows_to_split, folder_name, filename, progress, f"{province}_{district}")
+
 def split_and_save(df, num_rows_to_split, folder_name, filename, progress, label=""):
     total_rows = len(df)
     num_files = total_rows // num_rows_to_split
-    extra_part = f"_{label}" if label else ""  # Define extra_part at the start of the function
+    extra_part = f"_{label}" if label else ""
 
     for i in range(num_files):
         start_row = i * num_rows_to_split
@@ -10,7 +64,7 @@ def split_and_save(df, num_rows_to_split, folder_name, filename, progress, label
         file_name = f"{os.path.splitext(os.path.basename(filename))[0]}{extra_part} [From {start_row + 1} To {end_row}].xlsx"
         file_path = os.path.join(folder_name, file_name)
         df_subset.to_excel(file_path, index=False)
-        progress.update(1)
+        progress.update(end_row - start_row)
 
     if total_rows % num_rows_to_split != 0:
         start_row = num_files * num_rows_to_split
@@ -18,4 +72,6 @@ def split_and_save(df, num_rows_to_split, folder_name, filename, progress, label
         file_name = f"{os.path.splitext(os.path.basename(filename))[0]}{extra_part} [From {start_row + 1} To {total_rows}].xlsx"
         file_path = os.path.join(folder_name, file_name)
         df_subset.to_excel(file_path, index=False)
-        progress.update(1)
+        progress.update(total_rows - start_row)
+
+if __name__
