@@ -1,86 +1,11 @@
-import os
-import pandas as pd
-from tkinter import Tk, filedialog
-from tqdm import tqdm
-
-def split():
-    root = Tk()
-    root.withdraw()
-    root.attributes('-topmost', True)
-    filename = filedialog.askopenfilename(title="Chọn file Excel cần chia")
-    root.attributes('-topmost', False)
-    root.destroy()
-
-    if not filename:
-        print("Không có file nào được chọn.")
-        return
-
-    script_dir = os.path.dirname(filename)
-    folder_name = os.path.join(script_dir, "split")
-    if not os.path.exists(folder_name):
-        os.makedirs(folder_name)
-
-    df = pd.read_excel(filename)
-    df_split_input = pd.read_excel(filename, sheet_name='split_input', header=None)
-    num_rows_to_split = int(df_split_input.iloc[0, 1])
-    province_flag = df_split_input.iloc[1, 1]
-    district_flag = df_split_input.iloc[2, 1]
-
-    if df['Tỉnh Thành'].isnull().all():  # Check if the 'Tỉnh Thành' column is entirely null
-        process_split(df, num_rows_to_split, folder_name, filename)
-    else:
-        if province_flag == 'y' and district_flag == 'n':
-            process_by_province(df, num_rows_to_split, folder_name, filename)
-        elif province_flag == 'y' and district_flag == 'y':
-            process_by_district(df, num_rows_to_split, folder_name, filename)
-
-def process_split(df, num_rows_to_split, folder_name, filename):
-    total_rows = len(df)
-    num_files = (total_rows // num_rows_to_split) + (1 if total_rows % num_rows_to_split != 0 else 0)
-    progress = tqdm(total=num_files, desc=f"Processing {os.path.basename(filename)}")
-    split_and_save(df, num_rows_to_split, folder_name, filename, progress)
-
-def process_by_province(df, num_rows_to_split, folder_name, filename):
-    provinces = df['Tỉnh Thành'].unique()
-    for province in provinces:
-        province_df = df[df['Tỉnh Thành'] == province]
-        total_rows = len(province_df)
-        num_files = (total_rows // num_rows_to_split) + (1 if total_rows % num_rows_to_split != 0 else 0)
-        progress = tqdm(total=num_files, desc=f"Processing {province}")
-        split_and_save(province_df, num_rows_to_split, folder_name, filename, progress, province)
-
-def process_by_district(df, num_rows_to_split, folder_name, filename):
-    provinces = df['Tỉnh Thành'].unique()
-    for province in provinces:
-        province_df = df[df['Tỉnh Thành'] == province]
-        districts = province_df['Quận'].unique()
-        for district in districts:
-            district_df = province_df[province_df['Quận'] == district]
-            total_rows = len(district_df)
-            num_files = (total_rows // num_rows_to_split) + (1 if total_rows % num_rows_to_split != 0 else 0)
-            progress = tqdm(total=num_files, desc=f"Processing {province} - {district}")
-            split_and_save(district_df, num_rows_to_split, folder_name, filename, progress, f"{province}_{district}")
-
-def split_and_save(df, num_rows_to_split, folder_name, filename, progress, label=""):
-    total_rows = len(df)
-    num_files = total_rows // num_rows_to_split
-    for i in range(num_files):
-        start_row = i * num_rows_to_split
-        end_row = min((i + 1) * num_rows_to_split, total_rows)
-        df_subset = df.iloc[start_row:end_row, :]
-        extra_part = f"_{label}" if label else ""
-        file_name = f"{os.path.splitext(os.path.basename(filename))[0]}{extra_part} [From {start_row + 1} To {end_row}].xlsx"
-        file_path = os.path.join(folder_name, file_name)
-        df_subset.to_excel(file_path, index=False)
-        progress.update(1)
-
-    if total_rows % num_rows_to_split != 0:
-        start_row = num_files * num_rows_to_split
-        df_subset = df.iloc[start_row:, :]
-        file_name = f"{os.path.splitext(os.path.basename(filename))[0]}{extra_part} [From {start_row + 1} To {total_rows}].xlsx"
-        file_path = os.path.join(folder_name, file_name)
-        df_subset.to_excel(file_path, index=False)
-        progress.update(1)
-
-if __name__ == "__main__":
+ File "<frozen runpy>", line 88, in _run_code
+  File "C:\splitmerge\split_merge.py", line 173, in <module>
+    main()
+  File "C:\splitmerge\split_merge.py", line 164, in main
     split()
+  File "C:\splitmerge\split_merge.py", line 39, in split
+    process_by_district(df, num_rows_to_split, folder_name, filename)
+  File "C:\splitmerge\split_merge.py", line 66, in process_by_district
+    split_and_save(district_df, num_rows_to_split, folder_name, filename, progress, f"{province}_{district}")
+  File "C:\splitmerge\split_merge.py", line 84, in split_and_save
+    file_name = f"{os.path.splitext(os.path.basename(filename))[0]}{extra_part} [From {start_row + 1} To {total_rows}].xlsx"
