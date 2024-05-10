@@ -1,8 +1,28 @@
-[out:csv("name")][timeout:2500];
-area["name"="Tỉnh Cà Mau"]->.searchArea;
-(
-  way["highway"]["name"!~"Ấp|Hẻm|Ngõ|Ngách|Thôn|Tổ|Xóm|Làng|Khóm"](area.searchArea);
-);
-out;
+import requests
 
-I have a overpass ql right here, now execute this code using python and gather information to a list:
+def fetch_overpass_data():
+    # Overpass API URL
+    url = "http://overpass-api.de/api/interpreter"
+    
+    # Your Overpass QL query
+    query = """
+    [out:csv("name")][timeout:2500];
+    area["name"="Tỉnh Cà Mau"]->.searchArea;
+    (
+      way["highway"]["name"!~"Ấp|Hẻm|Ngõ|Ngách|Thôn|Tổ|Xóm|Làng|Khóm"](area.searchArea);
+    );
+    out;
+    """
+
+    # Sending the POST request to the Overpass API
+    response = requests.post(url, data={'data': query})
+
+    # Checking if the request was successful
+    if response.status_code == 200:
+        return response.text
+    else:
+        return f"Failed to retrieve data: {response.status_code}, {response.text}"
+
+# Call the function and print the results
+result = fetch_overpass_data()
+print(result)
