@@ -2,10 +2,31 @@ import requests
 import osmnx as ox
 import matplotlib.pyplot as plt
 
-def fetch_and_save_osm_data(relation_id, filename="relation.txt"):
+def find_relation_id(province, district, ward):
     overpass_url = "http://overpass-api.de/api/interpreter"
     overpass_query = f"""
-    [out:xml][timeout:25];
+    [out:json][timeout:25];
+    area[name="{province}"]->.province;
+    area[name="{district}"]->.district;
+    area[name="{ward}"]->.ward;
+    rel(area.ward);
+    out body;
+    """
+    response = requests.get(overpass_url, params={'data': overpass_query})
+    data = response.json()
+    for element in data['elements']:
+        if 'type' in element and element['type'] == 'relation':
+            return element['id']
+    return None
+
+def fetch_and_save_osm_data(relation_id, filename="relation.geojson"):
+    if relation_id is None:
+        print("No valid relation ID found.")
+        return
+
+    overpass_url = "http://overpass-api.de/api/interpreter"
+    overpass_query = f"""
+    [out:json][timeout:25];
     (relation({relation_id});
     );
     out body;
@@ -13,20 +34,27 @@ def fetch_and_save_osm_data(relation_id, filename="relation.txt"):
     out skel qt;
     """
     response = requests.get(overpass_url, params={'data': overpass_query})
-    # Save response content to a text file in text mode
-    with open(filename, 'w', encoding='utf-8') as file:
-        file.write(response.text)  # using response.text to handle text data
+    gdf = ox.geometries_from_xml(response.content)
+    gdf.to_file(filename, driver='GeoJSON')
 
-def plot_osm_file(filename="relation.txt"):
-    # Load the graph from OSM file
-    G = ox.graph_from_xml(filename, simplify=True)
-    # Plot the graph
-    ox.plot_graph(G)
+def plot_geojson_file(filename="relation.geojson"):
+    import geopandas as gpd
+    gdf = gpd.read_file(filename)
+    gdf.plot()
+    plt.show()
 
 def main():
-    relation_id = 9806914  # Replace this with your desired relation ID
-    fetch_and_save_osm_data(relation_id)
-    plot_osm_file()
+    province = "Province Name"  # Replace with actual province name
+    district = "District Name"  # Replace with actual district name
+    ward = "Ward Name"  # Replace with actual ward name
+
+    relation_id = find_relation_id(province, district, ward)
+    if relation_id:
+        print(f"The relation ID for {province}, {district}, {ward} is {relation_id}")
+        fetch_and_save_osm_data(relation_id)
+        plot_geojson_file()
+    else:
+        print("Relation ID not found. Please check the names and try again.")
 
 if __name__ == "__main__":
     main()
