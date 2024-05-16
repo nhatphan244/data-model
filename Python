@@ -2,7 +2,7 @@ import requests
 import osmnx as ox
 import matplotlib.pyplot as plt
 
-def fetch_and_save_osm_data(relation_id, filename="relation.osm"):
+def fetch_and_save_osm_data(relation_id, filename="relation.txt"):
     overpass_url = "http://overpass-api.de/api/interpreter"
     overpass_query = f"""
     [out:xml][timeout:25];
@@ -13,10 +13,11 @@ def fetch_and_save_osm_data(relation_id, filename="relation.osm"):
     out skel qt;
     """
     response = requests.get(overpass_url, params={'data': overpass_query})
-    with open(filename, 'wb') as file:
-        file.write(response.content)
+    # Save response content to a text file in text mode
+    with open(filename, 'w', encoding='utf-8') as file:
+        file.write(response.text)  # using response.text to handle text data
 
-def plot_osm_file(filename="relation.osm"):
+def plot_osm_file(filename="relation.txt"):
     # Load the graph from OSM file
     G = ox.graph_from_xml(filename, simplify=True)
     # Plot the graph
