@@ -1,1 +1,10 @@
-Is there a way to input ward,province,district as a request to google API and receive a detailed enough GeoJson file to visualize accurate boundaries of an administrative area 
+  overpass_query = f"""
+    [out:json];
+    area["name"="{province_name}"]->.province;
+    area["name"="{district_name}"]->.district;
+    area["name"="{ward_name}"]["boundary"="administrative"](area.district)(area.province)->.ward;
+    relation(area.province)(area.district)(area.ward)["name"="{ward_name}"]["boundary"="administrative"];
+    out body;
+    >;
+    out skel qt;
+    """
