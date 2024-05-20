@@ -1,60 +1,56 @@
 import requests
-import osmnx as ox
+import geopandas as gpd
 import matplotlib.pyplot as plt
 
-def find_relation_id(province, district, ward):
-    overpass_url = "http://overpass-api.de/api/interpreter"
-    overpass_query = f"""
-    [out:json][timeout:25];
-    area[name="{province}"]->.province;
-    area[name="{district}"]->.district;
-    area[name="{ward}"]->.ward;
-    rel(area.ward);
-    out body;
-    """
-    response = requests.get(overpass_url, params={'data': overpass_query})
-    data = response.json()
-    for element in data['elements']:
-        if 'type' in element and element['type'] == 'relation':
-            return element['id']
+def get_geocode(address, google_api_key):
+    """ Get geocode (latitude and longitude) for the given address using Google Maps API """
+    google_maps_api_url = f"https://maps.googleapis.com/maps/api/geocode/json?address={address}&key={google_api_key}"
+    response = requests.get(google_maps_api_url)
+    if response.status_code == 200:
+        json_data = response.json()
+        if json_data['status'] == 'OK':
+            lat = json_data['results'][0]['geometry']['location']['lat']
+            lng = json_data['results'][0]['geometry']['location']['lng']
+            return (lat, lng)
     return None
 
-def fetch_and_save_osm_data(relation_id, filename="relation.geojson"):
-    if relation_id is None:
-        print("No valid relation ID found.")
-        return
+def get_osm_boundary(lat, lng):
+    """ Get boundary using OpenStreetMap Nominatim API """
+    osm_api_url = f"https://nominatim.openstreetmap.org/reverse?format=json&lat={lat}&lon={lng}&zoom=18&polygon_geojson=1"
+    headers = {'User-Agent': 'Mozilla/5.0'}
+    response = requests.get(osm_api_url, headers=headers)
+    if response.status_code == 200:
+        json_data = response.json()
+        if 'geojson' in json_data:
+            return json_data['geojson']
+    return None
 
-    overpass_url = "http://overpass-api.de/api/interpreter"
-    overpass_query = f"""
-    [out:json][timeout:25];
-    (relation({relation_id});
-    );
-    out body;
-    >;
-    out skel qt;
-    """
-    response = requests.get(overpass_url, params={'data': overpass_query})
-    gdf = ox.geometries_from_xml(response.content)
-    gdf.to_file(filename, driver='GeoJSON')
-
-def plot_geojson_file(filename="relation.geojson"):
-    import geopandas as gpd
-    gdf = gpd.read_file(filename)
-    gdf.plot()
-    plt.show()
-
-def main():
-    province = "Province Name"  # Replace with actual province name
-    district = "District Name"  # Replace with actual district name
-    ward = "Ward Name"  # Replace with actual ward name
-
-    relation_id = find_relation_id(province, district, ward)
-    if relation_id:
-        print(f"The relation ID for {province}, {district}, {ward} is {relation_id}")
-        fetch_and_save_osm_data(relation_id)
-        plot_geojson_file()
+def plot_boundary(boundary_geojson):
+    """ Plot boundary using GeoPandas and Matplotlib """
+    if boundary_geojson:
+        # Convert GeoJSON to a GeoDataFrame
+        gdf = gpd.GeoDataFrame.from_features(boundary_geojson)
+        # Plotting the boundary
+        gdf.plot(edgecolor='blue', color='lightblue')
+        plt.title("Administrative Boundary")
+        plt.show()
     else:
-        print("Relation ID not found. Please check the names and try again.")
+        print("No boundary data to plot.")
 
-if __name__ == "__main__":
-    main()
+# Replace 'YOUR_GOOGLE_API_KEY' with your actual Google Maps API key
+google_api_key = 'YOUR_GOOGLE_API_KEY'
+address = 'New York City'
+
+# Get geocode from Google Maps API
+coords = get_geocode(address, google_api_key)
+if coords:
+    print(f"Coordinates for {address}: {coords}")
+    # Get boundary from OpenStreetMap
+    boundary = get_osm_boundary(*coords)
+    if boundary:
+        print("Boundary data retrieved from OpenStreetMap.")
+        plot_boundary(boundary)
+    else:
+        print("Failed to retrieve boundary data.")
+else:
+    print("Failed to get geocode data from Google Maps.")
