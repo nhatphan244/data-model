@@ -1,13 +1,58 @@
-Boundary data retrieved from OpenStreetMap.
-Traceback (most recent call last):
-  File "<frozen runpy>", line 198, in _run_module_as_main
-  File "<frozen runpy>", line 88, in _run_code
-  File "C:\Validation Tool\project-one\apps\core\validation\apicall_GG_test.py", line 53, in <module>
-    plot_boundary(boundary)
-  File "C:\Validation Tool\project-one\apps\core\validation\apicall_GG_test.py", line 33, in plot_boundary
-    gdf = gpd.GeoDataFrame.from_features(boundary_geojson)
-          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Validation Tool\project-one\.venv\Lib\site-packages\geopandas\geodataframe.py", line 644, in from_features
-    "geometry": shape(feature["geometry"]) if feature["geometry"] else None
-                                              ~~~~~~~^^^^^^^^^^^^
-TypeError: string indices must be integers, not 'str'
+import requests
+import geopandas as gpd
+import matplotlib.pyplot as plt
+
+def get_geocode(address, google_api_key):
+    """ Get geocode (latitude and longitude) for the given address using Google Maps API """
+    google_maps_api_url = f"https://maps.googleapis.com/maps/api/geocode/json?address={address}&key={google_api_key}"
+    response = requests.get(google_maps_api_url)
+    if response.status_code == 200:
+        json_data = response.json()
+        if json_data['status'] == 'OK':
+            lat = json_data['results'][0]['geometry']['location']['lat']
+            lng = json_data['results'][0]['geometry']['location']['lng']
+            return (lat, lng)
+    return None
+
+def get_osm_boundary(lat, lng):
+    """ Get boundary using OpenStreetMap Nominatim API """
+    osm_api_url = f"https://nominatim.openstreetmap.org/reverse?format=json&lat={lat}&lon={lng}&zoom=18&polygon_geojson=1"
+    headers = {'User-Agent': 'Mozilla/5.0'}
+    response = requests.get(osm_api_url, headers=headers)
+    if response.status_code == 200:
+        json_data = response.json()
+        if 'geojson' in json_data:
+            return json_data['geojson']
+    return None
+
+def plot_boundary(boundary_geojson):
+    """ Plot boundary using GeoPandas and Matplotlib """
+    if boundary_geojson:
+        # Convert GeoJSON to a GeoDataFrame
+        # Ensure that the boundary_geojson is wrapped in a 'features' key
+        features = {'type': 'FeatureCollection', 'features': [boundary_geojson]}
+        gdf = gpd.GeoDataFrame.from_features(features)
+        # Plotting the boundary
+        gdf.plot(edgecolor='blue', color='lightblue')
+        plt.title("Administrative Boundary")
+        plt.show()
+    else:
+        print("No boundary data to plot.")
+
+# Replace 'YOUR_GOOGLE_API_KEY' with your actual Google Maps API key
+google_api_key = 'YOUR_GOOGLE_API_KEY'
+address = 'New York City'
+
+# Get geocode from Google Maps API
+coords = get_geocode(address, google_api_key)
+if coords:
+    print(f"Coordinates for {address}: {coords}")
+    # Get boundary from OpenStreetMap
+    boundary = get_osm_boundary(*coords)
+    if boundary:
+        print("Boundary data retrieved from OpenStreetMap.")
+        plot_boundary(boundary)
+    else:
+        print("Failed to retrieve boundary data.")
+else:
+    print("Failed to get geocode data from Google Maps.")
