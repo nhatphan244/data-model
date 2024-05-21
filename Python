@@ -1,20 +1,16 @@
-"""
-        [out:json];
-        area["name"="{province_name}"]->.province;
-        area["name"="{district_name}"]->.district;
-        area["name"="{ward_name}"]["boundary"="administrative"](area.district)(area.province)->.commune_level_town;
-        relation(area.province)(area.district)(area.commune_level_town)["name"="{ward_name}"]["boundary"="administrative"];
-       
-        out body;
-         >;
-        out skel qt;
-    """
 [out:json];
+// Define the province area
 area["name"="{province_name}"]->.province;
+
+// Define the district area within the province
 area["name"="{district_name}"](area.province)->.district;
-(
-  relation(area.district)["name"="{ward_name}"]["boundary"="administrative"];
-);
+
+// Define the commune area within the district
+area["name"="{commune_name}"]["boundary"="administrative"](area.district)->.commune;
+
+// Fetch the relation for the specified commune within the district and province
+relation(area.commune)["name"="{commune_name}"]["boundary"="administrative"];
 out body;
 >;
 out skel qt;
+
