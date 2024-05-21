@@ -9,3 +9,12 @@
          >;
         out skel qt;
     """
+[out:json];
+area["name"="{province_name}"]->.province;
+area["name"="{district_name}"](area.province)->.district;
+(
+  relation(area.district)["name"="{ward_name}"]["boundary"="administrative"];
+);
+out body;
+>;
+out skel qt;
