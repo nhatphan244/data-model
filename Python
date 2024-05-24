@@ -1,4 +1,13 @@
 Here are my original code from a script call validation.py:
+for index, row in df.iterrows():
+        ward = row['Phường']
+        ward_id = row['Mã Phường']
+        district = row['Quận']
+        district_id = row['Mã Quận']
+        province = row['Tỉnh Thành']
+        province_id = row['Mã Tỉnh Thành']
+        latitude = row['Latitude']
+        longitude = row['Longitude']
        district_name = split_district_name(district)
         ward_name = split_ward_name(ward)
         province_name = split_province_name(province)
