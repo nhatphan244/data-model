@@ -1,16 +1,19 @@
-[out:json];
-// Define the province area
-area["name"="{province_name}"]->.province;
+Here are my original code from a script call validation.py:
+       district_name = split_district_name(district)
+        ward_name = split_ward_name(ward)
+        province_name = split_province_name(province)
+        query = df_gadm.loc[
+        (df_gadm["NAME_1"] == province_name) & 
+        (df_gadm["NAME_2"] == district_name) & 
+        (df_gadm["NAME_3"] == ward_name)]
+        if not query.empty:
+            geo = query['geometry']
+            actual_result = out_of_bounds_check(latitude,longitude,geo)
 
-// Define the district area within the province
-area["name"="{district_name}"](area.province)->.district;
+here are my function:
+def out_of_bounds_check (lat,lon,polygon_coords):
+    point = Point(lon,lat)
+    polygon = gpd.GeoSeries.from_wkt([polygon_coords]).iloc[0]
+    return polygon.contains(point)
 
-// Define the commune area within the district
-area["name"="{commune_name}"]["boundary"="administrative"](area.district)->.commune;
-
-// Fetch the relation for the specified commune within the district and province
-relation(area.commune)["name"="{commune_name}"]["boundary"="administrative"];
-out body;
->;
-out skel qt;
-
+how can I properly pass the geo (which now should be a list since it is inside a df.itterrows)
