@@ -1,32 +1,9 @@
-def validation(df: pd.DataFrame):
-    errors = []
-    df_gov_master = migrate_dataframe()  # Kéo db contents vào df 
-    df_gadm = migrate_gadm()
-    df_gadm['NAME_3'] = df_gadm['NAME_3'].apply(name_3_formatter)
-    
-    # Check ô trống
-    for column in VALIDATION_MANDATORY:
-        if df[column].isnull().any():
-            if column == 'Phường' and (df['Mã Phường'] == 0).any():
-                continue 
-            for index, value in df[df[column].isnull()].iterrows():
-                errors.append(f"Lỗi ở dòng {index + 2}, {column}: Bạn điền thiếu thông tin!")
-for column in VALIDATION_TELECO:
-        if column in df.columns:
-            for index, row in df.iterrows():
-                phone_number = row[column]
-                phone_number = str(phone_number) if not pd.isna(phone_number) else ''
-                valid, message = validate_phone_number(phone_number, column)
-                if not valid:
-                    errors.append(f"Lỗi ở dòng {index + 2}, {column}: {phone_number} {message}")
-                    
-    # Cross-check tỉnh-mã tỉnh/quận-mã quận/huyện-mã huyện/Lat-long với database
-    for index, row in df.iterrows():
+for index, row in helper.dfiter(df):
         print(index)
         ward = row[WARD]
         ward_id = row[WARD_ID]
         district = row[DISTRICT]
-        district_id = row[DISTRIBUTOR_ID]
+        district_id = row[DISTRICT_ID]
         province = row[PROVINCE]
         province_id = row[PROVINCE_ID]
         latitude = row[LATITUDE]
@@ -41,8 +18,11 @@ for column in VALIDATION_TELECO:
         location_type_id = row[STORE_LOCATION_ID]
         point = Point(longitude,latitude)
 
-        if any(pd.isna(val) for val in [ward, ward_id, district, district_id, province, province_id]):
-             continue
+        mandatory_columns = [column for column in VALIDATION_MANDATORY if pd.isnull(row[column]) and not (column == 'WARD' and row['WARD_ID'] == 0)]
+        for column in mandatory_columns:
+            errors.append(f"Lỗi ở dòng {index + 2}, {column}: Bạn điền thiếu thông tin!")
+
+       
     
         if df_gov_master.loc[(df_gov_master["province_name"] == province)].empty:
             errors.append(f"Lỗi ở dòng {index + 2}, Tỉnh Thành : Không tìm thấy tỉnh \"{province}\"  trong cơ sở dữ liệu.")
@@ -79,48 +59,12 @@ for column in VALIDATION_TELECO:
     errors.sort(key=lambda x: (int(x.split(',')[0].split(' ')[-1]), x.split(',')[1]))  # Sort lỗi theo dòng + cột
     return errors
 
-VALIDATION_MANDATORY ={
-    PROJECT_CODE,
-    STORE_ID,
-    CUSTOMER_STORE_ID,
-    STORE_NAME,
-    HOUSE_NUMBER,
-    STREET,
-    WARD_ID,
-    WARD,
-    DISTRICT_ID,
-    DISTRICT, 
-    PROVINCE_ID,
-    PROVINCE,
-    LONGITUDE,
-    LATITUDE,
-    DOMAIN_ID,
-    DOMAIN,
-    REGION_ID,
-    REGION,
-    AREA_ID,
-    AREA,
-    STORE_LOCATION_ID,
-    STORE_LOCATION,
-    BUSINESS_TYPE_ID,
-    BUSINESS_TYPE,
-    SALES_MEOTHD_ID,
-    SALES_METHOD,
-    STORE_TYPE_ID,
-    STORE_TYPE,
-    PRODUCT_CATEGORY_ID,
-    PRODUCT_CATEGORY,
-    DISTRIBUTION_CHANNEL_ID,
-    DISTRIBUTION_CHANNEL,
-    CHANNEL_ID,
-    CHANNEL,
-    CUSTOMER_TYPE_ID, 
-    CUSTOMER_TYPE
-}
+Now for this code, I want to move 
+    for column in VALIDATION_DUPLICATE:
+        non_blank_rows = df[df[column].notna()]
+        duplicate_values = non_blank_rows[non_blank_rows.duplicated(column, keep='first')]
+        for index, value in duplicate_values.iterrows():
+            errors.append(f"Lỗi ở dòng {index + 2}, {column}: {MSG_DUPLICATE.get(column)}")
 
-For this code, I want you to employ this   for column in VALIDATION_MANDATORY:
-        if df[column].isnull().any():
-            if column == 'Phường' and (df['Mã Phường'] == 0).any():
-                continue 
-            for index, value in df[df[column].isnull()].iterrows():
-                errors.append(f"Lỗi ở dòng {index + 2}, {column}: Bạn điền thiếu thông tin!") inside the for index, row in df.iterrows(): to optimize speed
+for index, row in helper.dfiter(df):
+how can I do it
