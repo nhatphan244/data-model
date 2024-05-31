@@ -1,76 +1,77 @@
-  for index, row in helper.dfiter(df):
-        ward = row[WARD]
-        ward_id = row[WARD_ID]
-        district = row[DISTRICT]
-        district_id = row[DISTRICT_ID]
-        province = row[PROVINCE]
-        province_id = row[PROVINCE_ID]
-        latitude = row[LATITUDE]
-        longitude = row[LONGITUDE]
-        domain = row[DOMAIN]
-        domain_id = row[DOMAIN_ID]
-        area = row[AREA]
-        area_id = row[AREA_ID]
-        region = row[REGION]
-        region_id =row[REGION_ID]
-        location_type = row[STORE_LOCATION]
-        location_type_id = row[STORE_LOCATION_ID]
-        point = Point(longitude,latitude)
+def process_row(row, df, df_gov_master,df_gov_master_region, df_gadm):
+    errors = []
+    index = row.name
+    ward = row[WARD]
+    ward_id = row[WARD_ID]
+    district = row[DISTRICT]
+    district_id = row[DISTRICT_ID]
+    province = row[PROVINCE]
+    province_id = row[PROVINCE_ID]
+    latitude = row[LATITUDE]
+    longitude = row[LONGITUDE]
+    store_location = row[STORE_LOCATION]
+    store_location_id = row[STORE_LOCATION_ID]
+    point = Point(longitude, latitude)
 
-        mandatory_columns = [column for column in VALIDATION_MANDATORY if pd.isnull(row[column]) and not (column == 'WARD' and row['WARD_ID'] == 0)]
-        for column in mandatory_columns:
-            errors.append(f"Lỗi ở dòng {index + 2}, {column}: Bạn điền thiếu thông tin!")
+    mandatory_columns = [column for column in VALIDATION_MANDATORY if pd.isnull(row[column]) and not (column == 'WARD' and row['WARD_ID'] == 0)]
+    for column in mandatory_columns:
+        errors.append(f"Lỗi ở dòng {index + 2}, {column}: Bạn điền thiếu thông tin!")
 
-        for column in VALIDATION_DUPLICATE:
-            if pd.notna(row[column]):
-                duplicate_rows = df[df[column] == row[column]]
-                if len(duplicate_rows) > 1:
-                    errors.append(f"Lỗi ở dòng {index + 2}, {column}: {MSG_DUPLICATE.get(column)}")
+    for column in VALIDATION_DUPLICATE:
+        if pd.notna(row[column]):
+            duplicate_rows = df[df[column] == row[column]]
+            if len(duplicate_rows) > 1:
+                errors.append(f"Lỗi ở dòng {index + 2}, {column}: {MSG_DUPLICATE.get(column)}")
 
-        for column in VALIDATION_TELECO:
-            if column in df.columns:
-                phone_number = row[column]
-                phone_number = str(phone_number) if not pd.isna(phone_number) else ''
-                valid, message = validate_phone_number(phone_number, column)
-                if not valid:
-                    errors.append(f"Lỗi ở dòng {index + 2}, {column}:{phone_number} {message}")
+    for column in VALIDATION_TELECO:
+        if column in df.columns:
+            phone_number = row[column]
+            phone_number = str(phone_number) if not pd.isna(phone_number) else ''
+            valid, message = validate_phone_number(phone_number, column)
+            if not valid:
+                errors.append(f"Lỗi ở dòng {index + 2}, {column}:{phone_number} {message}")
 
-        if any(pd.isna(val) for val in [ward, ward_id, district, district_id, province, province_id]):
-            continue
+    if any(pd.isna(val) for val in [ward, ward_id, district, district_id, province, province_id]):
+        return errors
 
-        if df_gov_master.loc[(df_gov_master["province_name"] == province)].empty:
-            errors.append(f"Lỗi ở dòng {index + 2}, Tỉnh Thành : Không tìm thấy tỉnh \"{province}\"  trong cơ sở dữ liệu.")
+    if df_gov_master.loc[(df_gov_master["province_name"] == province)].empty:
+        errors.append(f"Lỗi ở dòng {index + 2}, Tỉnh Thành : Không tìm thấy tỉnh \"{province}\" trong cơ sở dữ liệu.")
+    else:
+        if df_gov_master.loc[(df_gov_master["province_name"] == province) & (df_gov_master["district_name"] == district)].empty:
+            errors.append(f"Lỗi ở dòng {index + 2}, Quận : Không tìm thấy quận \"{district}\" trong cơ sở dữ liệu cho tỉnh \"{province}\".")
         else:
-            if df_gov_master.loc[(df_gov_master["province_name"] == province) & (df_gov_master["district_name"] == district)].empty:
-                errors.append(f"Lỗi ở dòng {index + 2}, Quận : Không tìm thấy quận \"{district}\" trong cơ sở dữ liệu cho tỉnh \"{province}\".")
-            else:
-                if df_gov_master.loc[(df_gov_master["province_name"] == province) & (df_gov_master["district_name"] == district) & (df_gov_master["ward_name"] == ward) ].empty:
-                    errors.append(f"Lỗi ở dòng {index + 2}, Phường : Không tìm thấy phường \"{ward}\" trong cơ sở dữ liệu cho quận \"{district}\", tỉnh \"{province}\".")
-        
-        if df_gov_master.loc[(df_gov_master["province_name"] == province) & (df_gov_master["province_id"] == province_id)].empty:
-            errors.append(f"Lỗi ở dòng {index + 2}, Mã Tỉnh Thành : Mã Tỉnh Thành \"{province_id}\" không khớp với tỉnh thành \"{province}\".")
-        if df_gov_master.loc[ (df_gov_master["district_name"] == district) & (df_gov_master["district_id"] == district_id)].empty:
-            errors.append(f"Lỗi ở dòng {index + 2}, Mã Quận : Mã Quận \"{district_id}\" không khớp với quận \"{district}\" .")
-        if df_gov_master.loc[(df_gov_master["ward_name"] == ward) & (df_gov_master["ward_id"] == ward_id)].empty:
-            errors.append(f"Lỗi ở dòng {index + 2}, Mã Phường : Mã Phường \"{ward_id}\" không khớp với phường \"{ward}\".") 
-      
-        district_name = split_district_name(district)
-        ward_type,ward_name = split_ward_name(ward)
-        province_name = split_province_name(province)
-        query = df_gadm.loc[
-        (df_gadm["NAME_1"] == province_name) & 
-        (df_gadm["NAME_2"] == district_name) & 
+            if df_gov_master.loc[(df_gov_master["province_name"] == province) & (df_gov_master["district_name"] == district) & (df_gov_master["ward_name"] == ward)].empty:
+                errors.append(f"Lỗi ở dòng {index + 2}, Phường : Không tìm thấy phường \"{ward}\" trong cơ sở dữ liệu cho quận \"{district}\", tỉnh \"{province}\".")
+
+    if df_gov_master.loc[(df_gov_master["province_name"] == province) & (df_gov_master["province_id"] == province_id)].empty:
+        errors.append(f"Lỗi ở dòng {index + 2}, Mã Tỉnh Thành : Mã Tỉnh Thành \"{province_id}\" không khớp với tỉnh thành \"{province}\".")
+    if df_gov_master.loc[(df_gov_master["district_name"] == district) & (df_gov_master["district_id"] == district_id)].empty:
+        errors.append(f"Lỗi ở dòng {index + 2}, Mã Quận : Mã Quận \"{district_id}\" không khớp với quận \"{district}\".")
+    if df_gov_master.loc[(df_gov_master["ward_name"] == ward) & (df_gov_master["ward_id"] == ward_id)].empty:
+        errors.append(f"Lỗi ở dòng {index + 2}, Mã Phường : Mã Phường \"{ward_id}\" không khớp với phường \"{ward}\".")
+
+    district_name = split_district_name(district)
+    ward_type, ward_name = split_ward_name(ward)
+    province_name = split_province_name(province)
+    query = df_gadm.loc[
+        (df_gadm["NAME_1"] == province_name) &
+        (df_gadm["NAME_2"] == district_name) &
         (df_gadm["NAME_3"] == ward_name) &
-        (df_gadm["TYPE_3"] == ward_type)]
+        (df_gadm["TYPE_3"] == ward_type)
+    ]
 
-        if not query.empty:
-            geo = query['geometry'].apply(wkt.loads)
-            if not any(geom.contains(point) for geom in geo):
-                errors.append(f"Lỗi ở dòng {index + 2}, Latitude/Longitude : Kinh độ/Vĩ độ \"{latitude}/{longitude}\" không nằm trong địa phận khớp với dữ liệu tra cứu theo cơ sở dữ liệu.")
-        else:
-            errors.append(f"Lỗi ở dòng {index + 2}, Phường/Quận/Tỉnh : Không tìm thấy địa phận theo tọa độ của \"{ward}\",\"{district}\",\"{province}\" trong cơ sở dữ liệu.")
+    if not query.empty:
+        geo = query['geometry'].apply(wkt.loads)
+        if not any(geom.contains(point) for geom in geo):
+            errors.append(f"Lỗi ở dòng {index + 2}, Latitude/Longitude : Kinh độ/Vĩ độ \"{latitude}/{longitude}\" không nằm trong địa phận khớp với dữ liệu tra cứu theo cơ sở dữ liệu.")
+    else:
+        errors.append(f"Lỗi ở dòng {index + 2}, Phường/Quận/Tỉnh : Không tìm thấy địa phận theo tọa độ của \"{ward}\",\"{district}\",\"{province}\" trong cơ sở dữ liệu.")
 
-    errors.sort(key=lambda x: (int(x.split(',')[0].split(' ')[-1]), x.split(',')[1]))  # Sort lỗi theo dòng + cột
+    df_merge = df.merge(df_gov_master_region,on =[f"{PROVINCE}"], how='left',suffixes=('', '_gov_master_region'))
+    for column in df.columns:
+        if f'{column}_gov_master_region' in df_merge.columns:
+            df[column] = df[column].fillna(df_merge[f'{column}_gov_master_region'])
+
     return errors
 
-For this code, instead of using itterows, I want you to use apply()
+For this code, now as you see there is a store_location = row[STORE_LOCATION] with STORE_LOCATION = 'Vị trí CH', I already have a ward_type that return values for me, so if it return 'Xã', fill in the corresponding column with 'Nông thôn, if the return value !=fill in the corresponding column with 'Nông thôn, else return errors
