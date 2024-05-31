@@ -71,7 +71,64 @@ def process_row(row, df, df_gov_master,df_gov_master_region, df_gadm):
     for column in df.columns:
         if f'{column}_gov_master_region' in df_merge.columns:
             df[column] = df[column].fillna(df_merge[f'{column}_gov_master_region'])
-
     return errors
 
-For this code, now as you see there is a store_location = row[STORE_LOCATION] with STORE_LOCATION = 'Vị trí CH', I already have a ward_type that return values for me, so if it return 'Xã', fill in the corresponding column with 'Nông thôn, if the return value !=fill in the corresponding column with 'Nông thôn, else return errors
+def validation(df: pd.DataFrame):
+    df_gov_master,df_gov_master_region = migrate_dataframe()  # Kéo db contents vào df
+    df_gov_master_region = df_gov_master_region.rename(columns={
+        'province_name' : PROVINCE,
+        'region_name' : REGION,
+        'region_id' : REGION_ID,
+        'domain_name': DOMAIN,
+        'domain_id' : DOMAIN_ID
+    })
+
+    df_gadm = migrate_gadm()
+    df_gadm['NAME_3'] = df_gadm['NAME_3'].apply(name_3_formatter)
+
+    all_errors = df.apply(lambda row: process_row(row, df, df_gov_master,df_gov_master_region, df_gadm), axis=1)
+    errors = [error for error_list in all_errors for error in error_list]  
+    errors.sort(key=lambda x: (int(x.split(',')[0].split(' ')[-1]), x.split(',')[1]))  # Sort lỗi theo dòng + cột
+    return errors
+
+def handle(file):
+    try:
+        df = pd.read_excel(file, usecols=VALIDATION_TEMPLATE, dtype={STORE_PHONE_NUMBER_1: str, STORE_PHONE_NUMBER_2: str})
+        df_columns = df.columns.to_list()
+        missing_columns = [c for c in VALIDATION_TEMPLATE if c not in df_columns]
+        if len(missing_columns) > 0:
+            return jsonify(error=f'{MSG_EXCEL_HEADER_NOT_MATCH}' % (helper.list_to_str(missing_columns)), error_fields=missing_columns), 400
+    except Exception as e:
+        return jsonify(error='File trống'), 400
+
+    errors = validation(df)
+    if errors:
+        output_file_name = f'validating_result_{times.now_no_space()}.xlsx'
+        output_file_path = os.path.join(OUTPUT_PATH, output_file_name)
+
+        with pd.ExcelWriter(output_file_path, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False)
+            wb = writer.book
+            sheet = wb.active
+            if 'Errors' not in sheet[1]:
+                sheet.cell(row=1, column=len(df_columns) + 1, value='Errors')
+
+            error_dict = {}
+            for error_element in errors:
+                row_num = int(error_element.split(',')[0].split(' ')[-1])
+                error_message = error_element.split(',')[1].strip()
+
+                if row_num not in error_dict:
+                    error_dict[row_num] = [f"+{error_message}"]
+                else:
+                    error_dict[row_num].append(f"+{error_message}")
+
+            for row_num, error_messages in error_dict.items():
+                error_str = '\n'.join(error_messages)
+                sheet.cell(row=row_num, column=len(df_columns) + 1, value=error_str)
+
+            wb.save(output_file_path)
+
+        return jsonify(path=OUTPUT_PATH, data=output_file_name), 200
+    else:
+        return jsonify({"message": "Scan file hoàn tất, không có lỗi."}), 200
