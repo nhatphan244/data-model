@@ -1,41 +1,9 @@
-from sqlalchemy.orm import Session
-from sqlalchemy import create_engine, text
-
-# Assume `engine` is already created
-# engine = create_engine('database_url')
-
-def get_gov_master_list(province_list):
-    with Session(engine) as session:
-        # Format the province list for the SQL query
-        formatted_province_list = ', '.join([f"N'{province}'" for province in province_list])
-
-        # Query 1: Using a parameterized query
-        query_1 = text(f"""
-            SELECT g.province_id, g.province_name, g.province_name_unsigned, 
-                   g.district_id, g.district_name, g.district_name_unsigned, 
-                   g.ward_id, g.ward_name, g.ward_name_unsigned 
-            FROM gov_master g 
-            WHERE g.province_name IN ({formatted_province_list})
-        """)
-        result = session.execute(query_1)
-        gov_master_list = result.fetchall()
-
-        # Query 2: Using a parameterized query
-        query_2 = text(f"""
-            SELECT DISTINCT g.province_id, g.province_name, 
-                            g.region_id, g.region_name, g.domain_id, g.domain_name 
-            FROM gov_master g 
-            WHERE g.province_name IN ({formatted_province_list})
-        """)
-        result_region = session.execute(query_2)
-        gov_master_list_region = result_region.fetchall()
-
-        # Original query for gadm without filtering
-        query_3 = text("""
-            SELECT g.name_1, g.name_2, g.name_3, g.type_3, g.geometry 
-            FROM gadm g
-        """)
-        result_gadm = session.execute(query_3)
-        gadm = result_gadm.fetchall()
-
-    return gov_master_list, gov_master_list_region, gadm
+f" {column}: {MSG_DUPLICATE.get(column)}"
+here are my message error:
+MSG_DUPLICATE = {
+    STORE_ID: "Mã cửa hàng không được trùng",
+    CUSTOMER_STORE_ID: "Mã CH của KH không được trùng",
+    STORE_PHONE_NUMBER_1: "Số điện thoại 1 của cửa hàng không được trùng",
+    STORE_PHONE_NUMBER_2: "Số điện thoại 2 của cửa hàng không được trùng"
+}
+Now I don't want to use f" any more, I want to use .format, how can I do so 
