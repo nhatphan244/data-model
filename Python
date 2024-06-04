@@ -1,134 +1,34 @@
-def process_row(row, df, df_gov_master,df_gov_master_region, df_gadm):
-    errors = []
-    index = row.name
-    ward = row[WARD]
-    ward_id = row[WARD_ID]
-    district = row[DISTRICT]
-    district_id = row[DISTRICT_ID]
-    province = row[PROVINCE]
-    province_id = row[PROVINCE_ID]
-    latitude = row[LATITUDE]
-    longitude = row[LONGITUDE]
-    store_location = row[STORE_LOCATION]
-    store_location_id = row[STORE_LOCATION_ID]
-    point = Point(longitude, latitude)
+def get_gov_master_list(province_list):
+        with Session(engine) as session:
+        # Format the province list for the SQL query
+        formatted_province_list = ', '.join([f"N'{province}'" for province in province_list])
 
-    mandatory_columns = [column for column in VALIDATION_MANDATORY if pd.isnull(row[column]) and not (column == 'WARD' and row['WARD_ID'] == 0)]
-    for column in mandatory_columns:
-        errors.append(f"Lỗi ở dòng {index + 2}, {column}: Bạn điền thiếu thông tin!")
+        # Query 1: Using a parameterized query
+        query_1 = """
+            SELECT g.province_id, g.province_name, g.province_name_unsigned, 
+                g.district_id, g.district_name, g.district_name_unsigned, 
+                g.ward_id, g.ward_name, g.ward_name_unsigned 
+            FROM gov_master g 
+            WHERE g.province_name IN :province_list
+        """
+        result = session.execute(text(query_1), {'province_list': formatted_province_list})
+        gov_master_list = result.fetchall()
 
-    for column in VALIDATION_DUPLICATE:
-        if pd.notna(row[column]):
-            duplicate_rows = df[df[column] == row[column]]
-            if len(duplicate_rows) > 1:
-                errors.append(f"Lỗi ở dòng {index + 2}, {column}: {MSG_DUPLICATE.get(column)}")
+        # Query 2: Using a parameterized query
+        query_2 = """
+            SELECT DISTINCT g.province_id, g.province_name, 
+                            g.region_id, g.region_name, g.domain_id, g.domain_name 
+            FROM gov_master g 
+            WHERE g.province_name IN :province_list
+        """
+        result_region = session.execute(text(query_2), {'province_list': formatted_province_list})
+        gov_master_list_region = result_region.fetchall()
+        # Original query for gadm without filtering
+        query_3 = sqlalchemy.text(f"""
+            SELECT g.name_1, g.name_2, g.name_3, g.type_3, g.geometry 
+            FROM gadm g
+        """)
+        result_gadm = session.execute(query_3)
+        gadm = result_gadm.fetchall()
 
-    for column in VALIDATION_TELECO:
-        if column in df.columns:
-            phone_number = row[column]
-            phone_number = str(phone_number) if not pd.isna(phone_number) else ''
-            valid, message = validate_phone_number(phone_number, column)
-            if not valid:
-                errors.append(f"Lỗi ở dòng {index + 2}, {column}:{phone_number} {message}")
-
-    if any(pd.isna(val) for val in [ward, ward_id, district, district_id, province, province_id]):
-        return errors
-
-    if df_gov_master.loc[(df_gov_master["province_name"] == province)].empty:
-        errors.append(f"Lỗi ở dòng {index + 2}, Tỉnh Thành : Không tìm thấy tỉnh \"{province}\" trong cơ sở dữ liệu.")
-    else:
-        if df_gov_master.loc[(df_gov_master["province_name"] == province) & (df_gov_master["district_name"] == district)].empty:
-            errors.append(f"Lỗi ở dòng {index + 2}, Quận : Không tìm thấy quận \"{district}\" trong cơ sở dữ liệu cho tỉnh \"{province}\".")
-        else:
-            if df_gov_master.loc[(df_gov_master["province_name"] == province) & (df_gov_master["district_name"] == district) & (df_gov_master["ward_name"] == ward)].empty:
-                errors.append(f"Lỗi ở dòng {index + 2}, Phường : Không tìm thấy phường \"{ward}\" trong cơ sở dữ liệu cho quận \"{district}\", tỉnh \"{province}\".")
-
-    if df_gov_master.loc[(df_gov_master["province_name"] == province) & (df_gov_master["province_id"] == province_id)].empty:
-        errors.append(f"Lỗi ở dòng {index + 2}, Mã Tỉnh Thành : Mã Tỉnh Thành \"{province_id}\" không khớp với tỉnh thành \"{province}\".")
-    if df_gov_master.loc[(df_gov_master["district_name"] == district) & (df_gov_master["district_id"] == district_id)].empty:
-        errors.append(f"Lỗi ở dòng {index + 2}, Mã Quận : Mã Quận \"{district_id}\" không khớp với quận \"{district}\".")
-    if df_gov_master.loc[(df_gov_master["ward_name"] == ward) & (df_gov_master["ward_id"] == ward_id)].empty:
-        errors.append(f"Lỗi ở dòng {index + 2}, Mã Phường : Mã Phường \"{ward_id}\" không khớp với phường \"{ward}\".")
-
-    district_name = split_district_name(district)
-    ward_type, ward_name = split_ward_name(ward)
-    province_name = split_province_name(province)
-    query = df_gadm.loc[
-        (df_gadm["NAME_1"] == province_name) &
-        (df_gadm["NAME_2"] == district_name) &
-        (df_gadm["NAME_3"] == ward_name) &
-        (df_gadm["TYPE_3"] == ward_type)
-    ]
-
-    if not query.empty:
-        geo = query['geometry'].apply(wkt.loads)
-        if not any(geom.contains(point) for geom in geo):
-            errors.append(f"Lỗi ở dòng {index + 2}, Latitude/Longitude : Kinh độ/Vĩ độ \"{latitude}/{longitude}\" không nằm trong địa phận khớp với dữ liệu tra cứu theo cơ sở dữ liệu.")
-    else:
-        errors.append(f"Lỗi ở dòng {index + 2}, Phường/Quận/Tỉnh : Không tìm thấy địa phận theo tọa độ của \"{ward}\",\"{district}\",\"{province}\" trong cơ sở dữ liệu.")
-
-    df_merge = df.merge(df_gov_master_region,on =[f"{PROVINCE}"], how='left',suffixes=('', '_gov_master_region'))
-    for column in df.columns:
-        if f'{column}_gov_master_region' in df_merge.columns:
-            df[column] = df[column].fillna(df_merge[f'{column}_gov_master_region'])
-    return errors
-
-def validation(df: pd.DataFrame):
-    df_gov_master,df_gov_master_region = migrate_dataframe()  # Kéo db contents vào df
-    df_gov_master_region = df_gov_master_region.rename(columns={
-        'province_name' : PROVINCE,
-        'region_name' : REGION,
-        'region_id' : REGION_ID,
-        'domain_name': DOMAIN,
-        'domain_id' : DOMAIN_ID
-    })
-
-    df_gadm = migrate_gadm()
-    df_gadm['NAME_3'] = df_gadm['NAME_3'].apply(name_3_formatter)
-
-    all_errors = df.apply(lambda row: process_row(row, df, df_gov_master,df_gov_master_region, df_gadm), axis=1)
-    errors = [error for error_list in all_errors for error in error_list]  
-    errors.sort(key=lambda x: (int(x.split(',')[0].split(' ')[-1]), x.split(',')[1]))  # Sort lỗi theo dòng + cột
-    return errors
-
-def handle(file):
-    try:
-        df = pd.read_excel(file, usecols=VALIDATION_TEMPLATE, dtype={STORE_PHONE_NUMBER_1: str, STORE_PHONE_NUMBER_2: str})
-        df_columns = df.columns.to_list()
-        missing_columns = [c for c in VALIDATION_TEMPLATE if c not in df_columns]
-        if len(missing_columns) > 0:
-            return jsonify(error=f'{MSG_EXCEL_HEADER_NOT_MATCH}' % (helper.list_to_str(missing_columns)), error_fields=missing_columns), 400
-    except Exception as e:
-        return jsonify(error='File trống'), 400
-
-    errors = validation(df)
-    if errors:
-        output_file_name = f'validating_result_{times.now_no_space()}.xlsx'
-        output_file_path = os.path.join(OUTPUT_PATH, output_file_name)
-
-        with pd.ExcelWriter(output_file_path, engine='openpyxl') as writer:
-            df.to_excel(writer, index=False)
-            wb = writer.book
-            sheet = wb.active
-            if 'Errors' not in sheet[1]:
-                sheet.cell(row=1, column=len(df_columns) + 1, value='Errors')
-
-            error_dict = {}
-            for error_element in errors:
-                row_num = int(error_element.split(',')[0].split(' ')[-1])
-                error_message = error_element.split(',')[1].strip()
-
-                if row_num not in error_dict:
-                    error_dict[row_num] = [f"+{error_message}"]
-                else:
-                    error_dict[row_num].append(f"+{error_message}")
-
-            for row_num, error_messages in error_dict.items():
-                error_str = '\n'.join(error_messages)
-                sheet.cell(row=row_num, column=len(df_columns) + 1, value=error_str)
-
-            wb.save(output_file_path)
-
-        return jsonify(path=OUTPUT_PATH, data=output_file_name), 200
-    else:
-        return jsonify({"message": "Scan file hoàn tất, không có lỗi."}), 200
+        return gov_master_list, gov_master_list_region, gadm
