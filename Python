@@ -1,56 +1,73 @@
-Kênh	Kênh phân phối	Ngành hàng	Location
-Market Stall	Off-premise		Trong Chợ
-Minimart	Off-premise	Chăm Sóc Cá Nhân	Ngoài đường
-Minimart	Off-premise	Chăm Sóc Nhà Cửa	Ngoài đường
-Minimart	Off-premise	Rượu Bia	Ngoài đường
-Minimart	Off-premise	Thực Phẩm	Ngoài đường
-Minimart	Off-premise	Thực Phẩm Dinh Dưỡng	Ngoài đường
-Minimart	Off-premise	Thực Phẩm Đông Lạnh	Ngoài đường
-Minimart	Off-premise	Thức Uống	Ngoài đường
-Traditional Grocery	Off-premise	Chăm Sóc Cá Nhân	Ngoài đường
-Traditional Grocery	Off-premise	Chăm Sóc Nhà Cửa	Ngoài đường
-Traditional Grocery	Off-premise	Rượu Bia	Ngoài đường
-Traditional Grocery	Off-premise	Thực Phẩm	Ngoài đường
-Traditional Grocery	Off-premise	Thực Phẩm Dinh Dưỡng	Ngoài đường
-Traditional Grocery	Off-premise	Thức Uống	Ngoài đường
-DT Drug Store	Off-premise	Chăm Sóc Cá Nhân	Ngoài đường
-DT Drug Store	Off-premise	Thực Phẩm Dinh Dưỡng	Ngoài đường
-Mom&Baby	Off-premise	Chăm Sóc Cá Nhân	Ngoài đường
-Mom&Baby	Off-premise	Thực Phẩm Dinh Dưỡng	Ngoài đường
-Cosmetic Stores	Off-premise	Chăm Sóc Cá Nhân	Ngoài đường
-Personal Store	Off-premise	Chăm Sóc Cá Nhân	Ngoài đường
-Personal Store	Off-premise	Chăm Sóc Nhà Cửa	Ngoài đường
-Convenience Store	Off-premise	Chăm Sóc Cá Nhân	Ngoài đường
-Convenience Store	Off-premise	Chăm Sóc Nhà Cửa	Ngoài đường
-Convenience Store	Off-premise	Rượu Bia	Ngoài đường
-Convenience Store	Off-premise	Thực Phẩm	Ngoài đường
-Convenience Store	Off-premise	Thực Phẩm Dinh Dưỡng	Ngoài đường
-Convenience Store	Off-premise	Thực Phẩm Đông Lạnh	Ngoài đường
-Convenience Store	Off-premise	Thức Uống	Ngoài đường
-Milk Biscuit Spirits Store	Off-premise	Thực Phẩm	Ngoài đường
-Milk Biscuit Spirits Store	Off-premise	Thực Phẩm Dinh Dưỡng	Ngoài đường
-Milk Biscuit Spirits Store	Off-premise	Rượu Bia	Ngoài đường
-Dairy shop	Off-premise	Thức Uống	Ngoài đường
-Dairy shop	Off-premise	Thực Phẩm Dinh Dưỡng	Ngoài đường
-Quán ăn	On-premise	Thực Phẩm	Ngoài đường
-Quán ăn	On-premise	Thức Uống	Ngoài đường
-Quán ăn	On-premise	Rượu Bia	Ngoài đường
-Nhà hàng	On-premise	Thực Phẩm	Ngoài đường
-Nhà hàng	On-premise	Thức Uống	Ngoài đường
-Nhà hàng	On-premise	Rượu Bia	Ngoài đường
-Café/ Tea shop	On-premise	Thức Uống	Ngoài đường
-Billiard & Karaoke	On-premise	Thực Phẩm	Ngoài đường
-Billiard & Karaoke	On-premise	Thức Uống	Ngoài đường
-Billiard & Karaoke	On-premise	Rượu Bia	Ngoài đường
-Hotel	On-premise	Thực Phẩm	Ngoài đường
-Hotel	On-premise	Thức Uống	Ngoài đường
-Hotel	On-premise	Rượu Bia	Ngoài đường
-Other shop	On-premise	Thực Phẩm	Ngoài đường
-Other shop	On-premise	Thức Uống	Ngoài đường
-Other shop	On-premise	Rượu Bia	Ngoài đường
-Canteens	On-premise	Thực Phẩm	Ngoài đường
-Canteens	On-premise	Thức Uống	Ngoài đường
-Canteens	On-premise	Chăm Sóc Cá Nhân	Ngoài đường
+# Correcting the lengths of the lists to match
+channels = [
+    "Market Stall", "Minimart", "Minimart", "Minimart", "Minimart", "Minimart", 
+    "Minimart", "Minimart", "Traditional Grocery", "Traditional Grocery", 
+    "Traditional Grocery", "Traditional Grocery", "Traditional Grocery", 
+    "Traditional Grocery", "DT Drug Store", "DT Drug Store", "Mom&Baby", 
+    "Mom&Baby", "Cosmetic Stores", "Personal Store", "Personal Store", 
+    "Convenience Store", "Convenience Store", "Convenience Store", 
+    "Convenience Store", "Convenience Store", "Convenience Store", 
+    "Convenience Store", "Milk Biscuit Spirits Store", 
+    "Milk Biscuit Spirits Store", "Milk Biscuit Spirits Store", "Dairy shop", 
+    "Dairy shop", "Quán ăn", "Quán ăn", "Quán ăn", "Nhà hàng", "Nhà hàng", 
+    "Nhà hàng", "Café/ Tea shop", "Billiard & Karaoke", "Billiard & Karaoke", 
+    "Billiard & Karaoke", "Hotel", "Hotel", "Hotel", "Other shop", "Other shop", 
+    "Other shop", "Canteens", "Canteens", "Canteens"
+]
 
+distribution_channels = [
+    "Off-premise", "Off-premise", "Off-premise", "Off-premise", "Off-premise", 
+    "Off-premise", "Off-premise", "Off-premise", "Off-premise", "Off-premise", 
+    "Off-premise", "Off-premise", "Off-premise", "Off-premise", "Off-premise", 
+    "Off-premise", "Off-premise", "Off-premise", "Off-premise", "Off-premise", 
+    "Off-premise", "Off-premise", "Off-premise", "Off-premise", "Off-premise", 
+    "Off-premise", "Off-premise", "Off-premise", "Off-premise", "Off-premise", 
+    "Off-premise", "Off-premise", "Off-premise", "Off-premise", "Off-premise", 
+    "On-premise", "On-premise", "On-premise", "On-premise", "On-premise", 
+    "On-premise", "On-premise", "On-premise", "On-premise", "On-premise", 
+    "On-premise", "On-premise", "On-premise", "On-premise", "On-premise", 
+    "On-premise", "On-premise"
+]
 
-Generate pd dataframe for this
+categories = [
+    "", "Chăm Sóc Cá Nhân", "Chăm Sóc Nhà Cửa", "Rượu Bia", "Thực Phẩm", 
+    "Thực Phẩm Dinh Dưỡng", "Thực Phẩm Đông Lạnh", "Thức Uống", 
+    "Chăm Sóc Cá Nhân", "Chăm Sóc Nhà Cửa", "Rượu Bia", "Thực Phẩm", 
+    "Thực Phẩm Dinh Dưỡng", "Thức Uống", "Chăm Sóc Cá Nhân", 
+    "Thực Phẩm Dinh Dưỡng", "Chăm Sóc Cá Nhân", "Thực Phẩm Dinh Dưỡng", 
+    "Chăm Sóc Cá Nhân", "Chăm Sóc Cá Nhân", "Chăm Sóc Nhà Cửa", 
+    "Chăm Sóc Cá Nhân", "Chăm Sóc Nhà Cửa", "Rượu Bia", "Thực Phẩm", 
+    "Thực Phẩm Dinh Dưỡng", "Thực Phẩm Đông Lạnh", "Thức Uống", 
+    "Thực Phẩm", "Thực Phẩm Dinh Dưỡng", "Rượu Bia", "Thức Uống", 
+    "Thực Phẩm Dinh Dưỡng", "Thực Phẩm", "Thức Uống", "Rượu Bia", 
+    "Thực Phẩm", "Thức Uống", "Rượu Bia", "Thức Uống", "Thực Phẩm", 
+    "Thức Uống", "Rượu Bia", "Thực Phẩm", "Thức Uống", "Rượu Bia", 
+    "Thực Phẩm", "Thức Uống", "Rượu Bia", "Thực Phẩm", "Thức Uống", 
+    "Chăm Sóc Cá Nhân"
+]
+
+locations = [
+    "Trong Chợ", "Ngoài đường", "Ngoài đường", "Ngoài đường", "Ngoài đường", 
+    "Ngoài đường", "Ngoài đường", "Ngoài đường", "Ngoài đường", "Ngoài đường", 
+    "Ngoài đường", "Ngoài đường", "Ngoài đường", "Ngoài đường", "Ngoài đường", 
+    "Ngoài đường", "Ngoài đường", "Ngoài đường", "Ngoài đường", "Ngoài đường", 
+    "Ngoài đường", "Ngoài đường", "Ngoài đường", "Ngoài đường", "Ngoài đường", 
+    "Ngoài đường", "Ngoài đường", "Ngoài đường", "Ngoài đường", "Ngoài đường", 
+    "Ngoài đường", "Ngoài đường", "Ngoài đường", "Ngoài đường", "Ngoài đường", 
+    "Ngoài đường", "Ngoài đường", "Ngoài đường", "Ngoài đường", "Ngoài đường", 
+    "Ngoài đường", "Ngoài đường", "Ngoài đường", "Ngoài đường", "Ngoài đường", 
+    "Ngoài đường", "Ngoài đường", "Ngoài đường", "Ngoài đường", "Ngoài đường", 
+    "Ngoài đường", "Ngoài đường"
+]
+
+# Create the DataFrame
+df_corrected_final = pd.DataFrame({
+    "Kênh": channels,
+    "Kênh phân phối": distribution_channels,
+    "Ngành hàng": categories,
+    "Location": locations
+})
+
+import ace_tools as tools; tools.display_dataframe_to_user(name="Distribution Channels DataFrame", dataframe=df_corrected_final)
+
+df_corrected_final
