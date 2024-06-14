@@ -1,9 +1,56 @@
-f" {column}: {MSG_DUPLICATE.get(column)}"
-here are my message error:
-MSG_DUPLICATE = {
-    STORE_ID: "Mã cửa hàng không được trùng",
-    CUSTOMER_STORE_ID: "Mã CH của KH không được trùng",
-    STORE_PHONE_NUMBER_1: "Số điện thoại 1 của cửa hàng không được trùng",
-    STORE_PHONE_NUMBER_2: "Số điện thoại 2 của cửa hàng không được trùng"
-}
-Now I don't want to use f" any more, I want to use .format, how can I do so 
+Kênh	Kênh phân phối	Ngành hàng	Location
+Market Stall	Off-premise		Trong Chợ
+Minimart	Off-premise	Chăm Sóc Cá Nhân	Ngoài đường
+Minimart	Off-premise	Chăm Sóc Nhà Cửa	Ngoài đường
+Minimart	Off-premise	Rượu Bia	Ngoài đường
+Minimart	Off-premise	Thực Phẩm	Ngoài đường
+Minimart	Off-premise	Thực Phẩm Dinh Dưỡng	Ngoài đường
+Minimart	Off-premise	Thực Phẩm Đông Lạnh	Ngoài đường
+Minimart	Off-premise	Thức Uống	Ngoài đường
+Traditional Grocery	Off-premise	Chăm Sóc Cá Nhân	Ngoài đường
+Traditional Grocery	Off-premise	Chăm Sóc Nhà Cửa	Ngoài đường
+Traditional Grocery	Off-premise	Rượu Bia	Ngoài đường
+Traditional Grocery	Off-premise	Thực Phẩm	Ngoài đường
+Traditional Grocery	Off-premise	Thực Phẩm Dinh Dưỡng	Ngoài đường
+Traditional Grocery	Off-premise	Thức Uống	Ngoài đường
+DT Drug Store	Off-premise	Chăm Sóc Cá Nhân	Ngoài đường
+DT Drug Store	Off-premise	Thực Phẩm Dinh Dưỡng	Ngoài đường
+Mom&Baby	Off-premise	Chăm Sóc Cá Nhân	Ngoài đường
+Mom&Baby	Off-premise	Thực Phẩm Dinh Dưỡng	Ngoài đường
+Cosmetic Stores	Off-premise	Chăm Sóc Cá Nhân	Ngoài đường
+Personal Store	Off-premise	Chăm Sóc Cá Nhân	Ngoài đường
+Personal Store	Off-premise	Chăm Sóc Nhà Cửa	Ngoài đường
+Convenience Store	Off-premise	Chăm Sóc Cá Nhân	Ngoài đường
+Convenience Store	Off-premise	Chăm Sóc Nhà Cửa	Ngoài đường
+Convenience Store	Off-premise	Rượu Bia	Ngoài đường
+Convenience Store	Off-premise	Thực Phẩm	Ngoài đường
+Convenience Store	Off-premise	Thực Phẩm Dinh Dưỡng	Ngoài đường
+Convenience Store	Off-premise	Thực Phẩm Đông Lạnh	Ngoài đường
+Convenience Store	Off-premise	Thức Uống	Ngoài đường
+Milk Biscuit Spirits Store	Off-premise	Thực Phẩm	Ngoài đường
+Milk Biscuit Spirits Store	Off-premise	Thực Phẩm Dinh Dưỡng	Ngoài đường
+Milk Biscuit Spirits Store	Off-premise	Rượu Bia	Ngoài đường
+Dairy shop	Off-premise	Thức Uống	Ngoài đường
+Dairy shop	Off-premise	Thực Phẩm Dinh Dưỡng	Ngoài đường
+Quán ăn	On-premise	Thực Phẩm	Ngoài đường
+Quán ăn	On-premise	Thức Uống	Ngoài đường
+Quán ăn	On-premise	Rượu Bia	Ngoài đường
+Nhà hàng	On-premise	Thực Phẩm	Ngoài đường
+Nhà hàng	On-premise	Thức Uống	Ngoài đường
+Nhà hàng	On-premise	Rượu Bia	Ngoài đường
+Café/ Tea shop	On-premise	Thức Uống	Ngoài đường
+Billiard & Karaoke	On-premise	Thực Phẩm	Ngoài đường
+Billiard & Karaoke	On-premise	Thức Uống	Ngoài đường
+Billiard & Karaoke	On-premise	Rượu Bia	Ngoài đường
+Hotel	On-premise	Thực Phẩm	Ngoài đường
+Hotel	On-premise	Thức Uống	Ngoài đường
+Hotel	On-premise	Rượu Bia	Ngoài đường
+Other shop	On-premise	Thực Phẩm	Ngoài đường
+Other shop	On-premise	Thức Uống	Ngoài đường
+Other shop	On-premise	Rượu Bia	Ngoài đường
+Canteens	On-premise	Thực Phẩm	Ngoài đường
+Canteens	On-premise	Thức Uống	Ngoài đường
+Canteens	On-premise	Chăm Sóc Cá Nhân	Ngoài đường
+
+
+Generate pd dataframe for this
